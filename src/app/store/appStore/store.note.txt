@@ -1,0 +1,380 @@
+import { signalStore, withComputed, withMethods } from '@ngrx/signals';
+import { inject } from '@angular/core';
+import { DoctorsStore } from './doctors.store';
+import { DepartmentsStore } from './departments.store';
+import { AppointmentsStore } from './appointments.store';
+import { UsersStore } from './users.store';
+import { CarouselsStore } from './carousels.store';
+import { InstrumentsStore } from './instruments.store';
+import { ServicesStore } from './services.store';
+import { GalleriesStore } from './galleries.store';
+import { HospitalNewsStore } from './hospital-news.store';
+import { HealthNewsStore } from './health-news.store';
+import { AboutStore } from './about.store';
+import { ContactStore } from './contact.store';
+
+export const AppStore = signalStore(
+  { providedIn: 'root' },
+
+  withComputed(() => {
+    // Inject all individual stores
+    const doctorsStore = inject(DoctorsStore);
+    const departmentsStore = inject(DepartmentsStore);
+    const appointmentsStore = inject(AppointmentsStore);
+    const usersStore = inject(UsersStore);
+    const carouselsStore = inject(CarouselsStore);
+    const instrumentsStore = inject(InstrumentsStore);
+    const servicesStore = inject(ServicesStore);
+    const galleriesStore = inject(GalleriesStore);
+    const hospitalNewsStore = inject(HospitalNewsStore);
+    const healthNewsStore = inject(HealthNewsStore);
+    const aboutStore = inject(AboutStore);
+    const contactStore = inject(ContactStore);
+
+    return {
+      // Cross-store computed values
+      departmentsWithDoctors: () => {
+        const doctors = doctorsStore.doctors();
+        const departments = departmentsStore.departments?.() ?? [];
+        const doctorDeptIds = doctors.map(d => d.departmentId);
+        return departments.filter(dept => doctorDeptIds.includes(dept.id));
+      },
+
+      // Global loading indicator (true if any store is loading)
+      isLoading: () => [
+        doctorsStore.loading(),
+        departmentsStore.loading?.(),
+        appointmentsStore.loading?.(),
+        usersStore.loading?.(),
+        carouselsStore.loading?.(),
+        instrumentsStore.loading?.(),
+        servicesStore.loading?.(),
+        galleriesStore.loading?.(),
+        hospitalNewsStore.loading?.(),
+        healthNewsStore.loading?.(),
+        aboutStore.loading?.(),
+        contactStore.loading?.(),
+      ].some(Boolean),
+
+      // Get the FIRST error message (priority-based)
+      globalError: () => {
+        const errors = [
+          doctorsStore.error(),
+          departmentsStore.error?.(),
+          appointmentsStore.error?.(),
+          usersStore.error?.(),
+          carouselsStore.error?.(),
+          instrumentsStore.error?.(),
+          servicesStore.error?.(),
+          galleriesStore.error?.(),
+          hospitalNewsStore.error?.(),
+          healthNewsStore.error?.(),
+          aboutStore.error?.(),
+          contactStore.error?.(),
+        ].filter(error => error && error.trim().length > 0);
+        
+        return errors.length > 0 ? errors[0] : null;
+      },
+
+      // Get the FIRST success message
+      globalSuccess: () => {
+        const successes = [
+          doctorsStore.success(),
+          departmentsStore.success?.(),
+          appointmentsStore.success?.(),
+          usersStore.success?.(),
+          carouselsStore.success?.(),
+          instrumentsStore.success?.(),
+          servicesStore.success?.(),
+          galleriesStore.success?.(),
+          hospitalNewsStore.success?.(),
+          healthNewsStore.success?.(),
+          aboutStore.success?.(),
+          contactStore.success?.(),
+        ].filter(success => success && success.trim().length > 0);
+        
+        return successes.length > 0 ? successes[0] : null;
+      },
+
+      // Get ALL error messages (for debugging or detailed display)
+      allErrors: () => {
+        return [
+          doctorsStore.error(),
+          departmentsStore.error?.(),
+          appointmentsStore.error?.(),
+          usersStore.error?.(),
+          carouselsStore.error?.(),
+          instrumentsStore.error?.(),
+          servicesStore.error?.(),
+          galleriesStore.error?.(),
+          hospitalNewsStore.error?.(),
+          healthNewsStore.error?.(),
+          aboutStore.error?.(),
+          contactStore.error?.(),
+        ].filter(error => error && error.trim().length > 0);
+      },
+
+      // Get ALL success messages
+      allSuccesses: () => {
+        return [
+          doctorsStore.success(),
+          departmentsStore.success?.(),
+          appointmentsStore.success?.(),
+          usersStore.success?.(),
+          carouselsStore.success?.(),
+          instrumentsStore.success?.(),
+          servicesStore.success?.(),
+          galleriesStore.success?.(),
+          hospitalNewsStore.success?.(),
+          healthNewsStore.success?.(),
+          aboutStore.success?.(),
+          contactStore.success?.(),
+        ].filter(success => success && success.trim().length > 0);
+      },
+
+      // Check if any store has errors
+      hasErrors: () => {
+        return [
+          doctorsStore.error(),
+          departmentsStore.error?.(),
+          appointmentsStore.error?.(),
+          usersStore.error?.(),
+          carouselsStore.error?.(),
+          instrumentsStore.error?.(),
+          servicesStore.error?.(),
+          galleriesStore.error?.(),
+          hospitalNewsStore.error?.(),
+          healthNewsStore.error?.(),
+          aboutStore.error?.(),
+          contactStore.error?.(),
+        ].some(error => error && error.trim().length > 0);
+      },
+
+      // Check if any store has success messages
+      hasSuccess: () => {
+        return [
+          doctorsStore.success(),
+          departmentsStore.success?.(),
+          appointmentsStore.success?.(),
+          usersStore.success?.(),
+          carouselsStore.success?.(),
+          instrumentsStore.success?.(),
+          servicesStore.success?.(),
+          galleriesStore.success?.(),
+          hospitalNewsStore.success?.(),
+          healthNewsStore.success?.(),
+          aboutStore.success?.(),
+          contactStore.success?.(),
+        ].some(success => success && success.trim().length > 0);
+      },
+
+      // App initialized when key stores have data
+      isInitialized: () =>
+        doctorsStore.doctors().length > 0 &&
+        departmentsStore.departments?.().length > 0 &&
+        carouselsStore.carousels?.().length > 0,
+
+      // Store-specific loading states (useful for individual component loading)
+      doctorsLoading: () => doctorsStore.loading(),
+      departmentsLoading: () => departmentsStore.loading?.(),
+      appointmentsLoading: () => appointmentsStore.loading?.(),
+      usersLoading: () => usersStore.loading?.(),
+      carouselsLoading: () => carouselsStore.loading?.(),
+    };
+  }),
+
+  withMethods((store) => {
+    // Inject stores once for use in methods
+    const doctorsStore = inject(DoctorsStore);
+    const departmentsStore = inject(DepartmentsStore);
+    const appointmentsStore = inject(AppointmentsStore);
+    const usersStore = inject(UsersStore);
+    const carouselsStore = inject(CarouselsStore);
+    const instrumentsStore = inject(InstrumentsStore);
+    const servicesStore = inject(ServicesStore);
+    const galleriesStore = inject(GalleriesStore);
+    const hospitalNewsStore = inject(HospitalNewsStore);
+    const healthNewsStore = inject(HealthNewsStore);
+    const aboutStore = inject(AboutStore);
+    const contactStore = inject(ContactStore);
+
+    // Store mapping for easy access
+    const storeMap: { [key: string]: any } = {
+      'doctors': doctorsStore,
+      'departments': departmentsStore,
+      'appointments': appointmentsStore,
+      'users': usersStore,
+      'carousels': carouselsStore,
+      'instruments': instrumentsStore,
+      'services': servicesStore,
+      'galleries': galleriesStore,
+      'hospitalNews': hospitalNewsStore,
+      'healthNews': healthNewsStore,
+      'about': aboutStore,
+      'contact': contactStore,
+    };
+
+    const allStores = [
+      doctorsStore,
+      departmentsStore,
+      appointmentsStore,
+      usersStore,
+      carouselsStore,
+      instrumentsStore,
+      servicesStore,
+      galleriesStore,
+      hospitalNewsStore,
+      healthNewsStore,
+      aboutStore,
+      contactStore,
+    ];
+
+    return {
+      // 🔄 Global initializer
+      initializeApp() {
+        doctorsStore.loadDoctors();
+        departmentsStore.loadDepartments();
+        appointmentsStore.loadAppointments({
+          from: new Date().toISOString().split('T')[0],
+          to: new Date().toISOString().split('T')[0],
+        });
+        usersStore.loadUsers();
+        carouselsStore.loadCarousels();
+        instrumentsStore.loadInstruments();
+        servicesStore.loadServices();
+        galleriesStore.loadGalleries();
+        hospitalNewsStore.loadHospitalNews();
+        healthNewsStore.loadHealthNews();
+        aboutStore.loadAboutUs();
+        contactStore.loadContact();
+      },
+
+      // 🔄 Refresh specific store data
+      refreshStore(storeName: string) {
+        const store = storeMap[storeName];
+        if (!store) return;
+
+        switch (storeName) {
+          case 'doctors':
+            store.loadDoctors();
+            break;
+          case 'departments':
+            store.loadDepartments();
+            break;
+          case 'appointments':
+            store.loadAppointments({
+              from: new Date().toISOString().split('T')[0],
+              to: new Date().toISOString().split('T')[0],
+            });
+            break;
+          case 'users':
+            store.loadUsers();
+            break;
+          case 'carousels':
+            store.loadCarousels();
+            break;
+          case 'instruments':
+            store.loadInstruments();
+            break;
+          case 'services':
+            store.loadServices();
+            break;
+          case 'galleries':
+            store.loadGalleries();
+            break;
+          case 'hospitalNews':
+            store.loadHospitalNews();
+            break;
+          case 'healthNews':
+            store.loadHealthNews();
+            break;
+          case 'about':
+            store.loadAboutUs();
+            break;
+          case 'contact':
+            store.loadAddress();
+            break;
+        }
+      },
+
+      // ❌ Clear ALL errors from ALL stores
+      clearAllErrors() {
+        allStores.forEach(s => s.clearError?.());
+      },
+
+      // ✅ Clear ALL success messages from ALL stores
+      clearAllSuccess() {
+        allStores.forEach(s => s.clearSuccess?.());
+      },
+
+      // 🎯 Clear specific store's error
+      clearStoreError(storeName: string) {
+        storeMap[storeName]?.clearError?.();
+      },
+
+      // 🎯 Clear specific store's success
+      clearStoreSuccess(storeName: string) {
+        storeMap[storeName]?.clearSuccess?.();
+      },
+
+      // 🚨 Set global error (useful for HTTP interceptors)
+      setGlobalError(message: string) {
+        // Set on doctors store as a default global error store
+        doctorsStore.setError(message);
+      },
+
+      // ✅ Set global success
+      setGlobalSuccess(message: string) {
+        doctorsStore.setSuccess(message);
+      },
+
+      // 🔍 Get store by name
+      getStore(storeName: string) {
+        return storeMap[storeName];
+      },
+
+      // 📊 Get store statistics
+      getStoreStats() {
+        return {
+          doctors: doctorsStore.doctors().length,
+          departments: departmentsStore.departments?.().length ?? 0,
+          appointments: appointmentsStore.appointments?.().length ?? 0,
+          users: usersStore.users?.().length ?? 0,
+          carousels: carouselsStore.carousels?.().length ?? 0,
+          instruments: instrumentsStore.instruments?.().length ?? 0,
+          services: servicesStore.services?.().length ?? 0,
+          galleries: galleriesStore.galleries?.().length ?? 0,
+          hospitalNews: hospitalNewsStore.hospitalNews?.().length ?? 0,
+          healthNews: healthNewsStore.healthNews?.().length ?? 0,
+        };
+      },
+
+      // 🔄 Refresh all stores
+      refreshAllStores() {
+        this.initializeApp();
+      },
+
+      // 🛑 Cancel all ongoing operations (useful for component destruction)
+      cancelAllOperations() {
+        // Note: This would need to be implemented in individual stores
+        // using takeUntil or similar RxJS patterns
+        console.log('Cancel all operations requested - implement in individual stores');
+      }
+    };
+  })
+);
+
+// Optional: Store name type for better TypeScript support
+export type StoreName = 
+  | 'doctors' 
+  | 'departments' 
+  | 'appointments' 
+  | 'users' 
+  | 'carousels' 
+  | 'instruments' 
+  | 'services' 
+  | 'galleries' 
+  | 'hospitalNews' 
+  | 'healthNews' 
+  | 'about' 
+  | 'contact';

@@ -1,0 +1,32 @@
+
+@if (slides().length > 0) {
+  <div ngSkipHydration>
+  <swiper-container
+    effect="fade"
+    pagination="true"
+    navigation="true"
+    autoplay="true"
+    loop="true"
+    speed="1500"
+    interval="2000"
+    class="w-full h-full md:h-[90vh]"
+  >
+    @for (item of slides(); track item?.id) {
+    <swiper-slide>
+      <div class="relative w-full h-full">
+        <img [src]="ImageApi + item?.imageUrl" class="w-full h-full object-cover" />
+        @if (item?.title) {
+        <div
+          class="absolute bottom-10 left-10 px-4 py-2.5 bg-black/50 rounded text-white max-w-1/2"
+        >
+          <h2 class="text-sm md:text-xl">{{ item?.title }}</h2>
+          <p class="text-xs md:text-sm">{{ item?.description }}</p>
+        </div>
+        }
+      </div>
+    </swiper-slide>
+    }
+  </swiper-container>
+</div>
+}
+

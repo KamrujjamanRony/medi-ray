@@ -1,0 +1,1345 @@
+// store/app.store.ts
+import { signalStore, withState, withMethods, patchState, withComputed } from '@ngrx/signals';
+import { inject } from '@angular/core';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, switchMap, tap, catchError, of } from 'rxjs';
+import { DoctorsService } from '../services/serial/doctors.service';
+import { DepartmentService } from '../services/serial/department.service';
+import { AppointmentsService } from '../services/serial/appointments.service';
+import { UsersService } from '../services/serial/users.service';
+import { UserAuthService } from '../services/serial/userAuth.service';
+import { CarouselService } from '../services/main/carousel.service';
+import { InstrumentService } from '../services/main/instrument.service';
+import { ServicesService } from '../services/main/services.service';
+import { GalleryService } from '../services/main/gallery.service';
+import { HospitalNewsService } from '../services/main/hospitalNews.service';
+import { HealthNewsService } from '../services/main/healthNews.service';
+import { AboutService } from '../services/main/about.service';
+import { ContactService } from '../services/main/contact.service';
+import { environment } from '../../environments/environments';
+import { AppState } from './interface';
+
+const initialState: AppState = {
+    doctors: [],
+    departments: [],
+    appointments: [],
+    users: [],
+    carousels: [],
+    instruments: [],
+    services: [],
+    galleries: [],
+    hospitalNews: [],
+    healthNews: [],
+    aboutUs: {
+        "id": "test-id",
+        "companyID": environment.hospitalCode,
+        "heading": "About Us",
+        "title": "Title 01",
+        "description": "description 01",
+        "title2": "Title 02",
+        "description2": "description 02",
+        "title3": "Title 03",
+        "description3": "description 03",
+        "title4": "Title 04",
+        "description4": "description 04",
+        "title5": "Title 05",
+        "description5": "description 05"
+    },
+    address: {
+        "id": "test-id",
+        "companyID": environment.hospitalCode,
+        "address1": "",
+        "address2": "",
+        "phoneNumber1": "",
+        "phoneNumber2": "",
+        "phoneNumber3": "",
+        "email": "",
+        "facebookLink": "",
+        "othersLink1": "",
+        "othersLink2": ""
+    },
+    loading: false,
+    error: null,
+    success: null,
+    initialized: false
+};
+
+const today = new Date();
+const from = today.toISOString().split('T')[0];
+
+export const AppStore = signalStore(
+    { providedIn: 'root' },
+
+    withState(initialState),
+
+    withComputed(({ doctors, departments, appointments, users }) => ({
+        // Doctor Computed Signals
+        doctorsSortedBySerial: () => [...doctors()].sort((a, b) =>
+            (a.drSerial ?? 0) - (b.drSerial ?? 0)
+        ),
+
+        // getDoctorById moved to methods below
+
+        // Department Computed Signals
+        departmentsWithDoctors: () => {
+            const doctorDeptIds = doctors().map(d => d.departmentId);
+            return departments().filter(dept => doctorDeptIds.includes(dept.id));
+        },
+
+        // Appointment Computed Signals
+        upcomingAppointments: () =>
+            appointments().filter(apt => new Date(apt.date) >= new Date())
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+
+        // User Computed Signals
+        adminUsers: () => users().filter(user => user.roleIds?.includes('admin')),
+    })),
+
+    withMethods((
+        store,
+        servicesService = inject(ServicesService),
+        instrumentService = inject(InstrumentService),
+        carouselService = inject(CarouselService),
+        doctorsService = inject(DoctorsService),
+        departmentService = inject(DepartmentService),
+        appointmentsService = inject(AppointmentsService),
+        userService = inject(UsersService),
+        userAuthService = inject(UserAuthService),
+        galleryService = inject(GalleryService),
+        hospitalNewsService = inject(HospitalNewsService),
+        healthNewsService = inject(HealthNewsService),
+        aboutService = inject(AboutService),
+        contactService = inject(ContactService)
+    ) => ({
+
+
+        // Initialize all data
+        initializeApp: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true, error: null })),
+                switchMap(() =>
+                    // Load all data in parallel
+                    aboutService.getCompanyAbout().pipe(
+                        switchMap(aboutUs =>
+                            contactService.getCompanyAddress().pipe(
+                                switchMap((address) =>
+                                    hospitalNewsService.getCompanyHospitalNews().pipe(
+                                        switchMap(hospitalNews =>
+                                            healthNewsService.getCompanyHealthNews().pipe(
+                                                switchMap((healthNews) =>
+                                                    galleryService.getCompanyGallery().pipe(
+                                                        switchMap(galleries =>
+                                                            servicesService.getCompanyServices().pipe(
+                                                                switchMap(services =>
+                                                                    instrumentService.getCompanyInstrument().pipe(
+                                                                        switchMap(instruments =>
+                                                                            carouselService.getCompanyCarousel().pipe(
+                                                                                switchMap(carousels =>
+                                                                                    doctorsService.getCompanyDoctor().pipe(
+                                                                                        switchMap(doctors =>
+                                                                                            departmentService.getDepartments().pipe(
+                                                                                                switchMap(departments =>
+                                                                                                    appointmentsService.getAppointment(from, from).pipe(
+                                                                                                        switchMap(appointments =>
+                                                                                                            userService.getUsers().pipe(
+                                                                                                                tap((users) => {
+                                                                                                                    patchState(store, {
+                                                                                                                        aboutUs: aboutUs,
+                                                                                                                        address: address,
+                                                                                                                        hospitalNews: hospitalNews.sort((a, b) => a.newsSerial - b.newsSerial),
+                                                                                                                        healthNews: healthNews.sort((a, b) => a.healthNewsSerial - b.healthNewsSerial),
+                                                                                                                        galleries: galleries.sort((a, b) => a.galerySerial - b.galerySerial),
+                                                                                                                        services,
+                                                                                                                        instruments: instruments.sort((a, b) => a.productSerial - b.productSerial),
+                                                                                                                        carousels,
+                                                                                                                        doctors,
+                                                                                                                        departments,
+                                                                                                                        appointments,
+                                                                                                                        users,
+                                                                                                                        loading: false,
+                                                                                                                        initialized: true,
+                                                                                                                        error: null
+                                                                                                                    });
+                                                                                                                }),
+                                                                                                                catchError(error => {
+                                                                                                                    patchState(store, {
+                                                                                                                        loading: false,
+                                                                                                                        error: 'Failed to initialize app data'
+                                                                                                                    });
+                                                                                                                    return of(null);
+                                                                                                                })
+                                                                                                            )
+                                                                                                        )
+                                                                                                    )
+                                                                                                )
+                                                                                            )
+                                                                                        )
+                                                                                    )
+                                                                                )
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        ),
+
+        // Set loading state
+        setLoading: (isLoading: boolean) => {
+            patchState(store, { loading: isLoading });
+        },
+
+        setSuccess: (message: string | null) => {
+            patchState(store, { success: message });
+        },
+
+
+        // AboutUs Methods
+        loadAboutUs: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    aboutService.getCompanyAbout().pipe(
+                        tap(aboutUs => {
+                            // Since getCompanyAbout returns a single object, not an array
+                            patchState(store, {
+                                aboutUs: aboutUs || null,
+                                loading: false
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to load about us information'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateAboutUs: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    aboutService.updateAbout(id, data).pipe(
+                        tap(updatedAbout => {
+                            patchState(store, {
+                                aboutUs: updatedAbout,
+                                success: 'About us updated successfully',
+                                loading: false,
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update about us information'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Address Methods
+        loadAddress: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    contactService.getCompanyAddress().pipe(
+                        tap(address => {
+                            // Since getCompanyAddress returns a single object, not an array
+                            patchState(store, {
+                                address: address || null,
+                                loading: false
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to load address information'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateAddress: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    contactService.updateAddress(id, data).pipe(
+                        tap(updatedAddress => {
+                            patchState(store, {
+                                address: updatedAddress,
+                                loading: false,
+                                success: 'Address updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update address information'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Hospital News Methods
+        loadHospitalNews: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    hospitalNewsService.getCompanyHospitalNews().pipe(
+                        tap(hospitalNews => patchState(store, { hospitalNews: hospitalNews.sort((a, b) => a.newsSerial - b.newsSerial), loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load hospital news' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addHospitalNews: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((newsData) =>
+                    hospitalNewsService.addHospitalNews(newsData).pipe(
+                        tap((newHospitalNews) => {
+                            const currentHospitalNews: any = store.hospitalNews();
+                            const hospitalNews = [...currentHospitalNews, newHospitalNews];
+                            patchState(store, {
+                                hospitalNews,
+                                loading: false,
+                                success: 'Hospital news added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add hospital news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateHospitalNews: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    hospitalNewsService.updateHospitalNews(id, data).pipe(
+                        tap(updatedNews => {
+                            const currentNews = store.hospitalNews();
+                            const updatedNewsList = currentNews.map(news =>
+                                news.id === id ? { ...news, ...updatedNews } : news
+                            );
+                            patchState(store, {
+                                hospitalNews: updatedNewsList,
+                                success: 'Hospital news updated successfully',
+                                loading: false,
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update hospital news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteHospitalNews: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    hospitalNewsService.deleteHospitalNews(id).pipe(
+                        tap(() => {
+                            const currentNews = store.hospitalNews();
+                            const filteredNews = currentNews.filter(news => news.id !== id);
+                            patchState(store, {
+                                hospitalNews: filteredNews,
+                                loading: false,
+                                success: 'Hospital news deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete hospital news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Health News Methods
+        loadHealthNews: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    healthNewsService.getCompanyHealthNews().pipe(
+                        tap(healthNews => patchState(store, { healthNews: healthNews.sort((a, b) => a.healthNewsSerial - b.healthNewsSerial), loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load health news' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addHealthNews: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((newsData) =>
+                    healthNewsService.addHealthNews(newsData).pipe(
+                        tap((newHealthNew) => {
+                            const currentHealthNews: any = store.healthNews();
+                            const healthNews = [...currentHealthNews, newHealthNew];
+                            patchState(store, {
+                                healthNews,
+                                loading: false,
+                                success: 'Health news added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add health news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateHealthNews: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    healthNewsService.updateHealthNews(id, data).pipe(
+                        tap(updatedNews => {
+                            const currentNews = store.healthNews();
+                            const updatedNewsList = currentNews.map(news =>
+                                news.id === id ? { ...news, ...updatedNews } : news
+                            );
+                            patchState(store, {
+                                healthNews: updatedNewsList,
+                                loading: false,
+                                success: 'Health news updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update health news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteHealthNews: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    healthNewsService.deleteHealthNews(id).pipe(
+                        tap(() => {
+                            const currentNews = store.healthNews();
+                            const filteredNews = currentNews.filter(news => news.id !== id);
+                            patchState(store, {
+                                healthNews: filteredNews,
+                                loading: false,
+                                success: 'Health news deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete health news'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Gallery Methods
+        loadGalleries: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    galleryService.getCompanyGallery().pipe(
+                        tap(galleries => patchState(store, { galleries: galleries.sort((a, b) => a.galerySerial - b.galerySerial), loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load galleries' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addGallery: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((galleryData) =>
+                    galleryService.addGallery(galleryData).pipe(
+                        tap((newGallery) => {
+                            const currentGalleries: any = store.galleries();
+                            const galleries = [...currentGalleries, newGallery];
+                            patchState(store, {
+                                galleries,
+                                loading: false,
+                                success: 'Gallery added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add gallery'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateGallery: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    galleryService.updateGallery(id, data).pipe(
+                        tap(updatedGallery => {
+                            const currentGalleries = store.galleries();
+                            const updatedGalleries = currentGalleries.map(gallery =>
+                                gallery.id === id ? { ...gallery, ...updatedGallery } : gallery
+                            );
+                            patchState(store, {
+                                galleries: updatedGalleries,
+                                loading: false,
+                                success: 'Gallery updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update gallery'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteGallery: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    galleryService.deleteGallery(id).pipe(
+                        tap(() => {
+                            const currentGalleries = store.galleries();
+                            const filteredGalleries = currentGalleries.filter(gallery => gallery.id !== id);
+                            patchState(store, {
+                                galleries: filteredGalleries,
+                                loading: false,
+                                success: 'Gallery deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete gallery'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Service Methods
+        loadServices: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    servicesService.getCompanyServices().pipe(
+                        tap(services => patchState(store, { services, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load services' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addService: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((serviceData) =>
+                    servicesService.addServices(serviceData).pipe(
+                        tap((newService) => {
+                            const currentServices: any = store.services();
+                            const services = [...currentServices, newService];
+                            patchState(store, {
+                                services,
+                                loading: false,
+                                success: 'Service added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add service'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateService: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    servicesService.updateServices(id, data).pipe(
+                        tap(updatedService => {
+                            const currentServices = store.services();
+                            const updatedServices = currentServices.map(service =>
+                                service.id === id ? { ...service, ...updatedService } : service
+                            );
+                            patchState(store, {
+                                services: updatedServices,
+                                loading: false,
+                                success: 'Service updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update service'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteService: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    servicesService.deleteServices(id).pipe(
+                        tap(() => {
+                            const currentServices = store.services();
+                            const filteredServices = currentServices.filter(service => service.id !== id);
+                            patchState(store, {
+                                services: filteredServices,
+                                loading: false,
+                                success: 'Service deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete service'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Instrument Methods
+        loadInstruments: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    instrumentService.getCompanyInstrument().pipe(
+                        tap(instruments =>
+                            patchState(store, { instruments: instruments.sort((a, b) => a.productSerial - b.productSerial), loading: false })
+                        ),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load instruments' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addInstrument: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((instrumentData) =>
+                    instrumentService.addInstrument(instrumentData).pipe(
+                        tap((newInstrument) => {
+                            const currentInstrument: any = store.instruments();
+                            const instruments = [...currentInstrument, newInstrument];
+                            patchState(store, {
+                                instruments,
+                                loading: false,
+                                success: 'Instrument added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add instrument'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateInstrument: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    instrumentService.updateInstrument(id, data).pipe(
+                        tap(updatedInstrument => {
+                            const currentInstruments = store.instruments();
+                            const updatedInstruments = currentInstruments.map(instrument =>
+                                instrument.id === id ? { ...instrument, ...updatedInstrument } : instrument
+                            );
+                            patchState(store, {
+                                instruments: updatedInstruments,
+                                loading: false,
+                                success: 'Instrument updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update instrument'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteInstrument: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    instrumentService.deleteInstrument(id).pipe(
+                        tap(() => {
+                            const currentInstruments = store.instruments();
+                            const filteredInstruments = currentInstruments.filter(instrument => instrument.id !== id);
+                            patchState(store, {
+                                instruments: filteredInstruments,
+                                loading: false,
+                                success: 'Instrument deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete instrument'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Carousel Methods
+        loadCarousels: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    carouselService.getCompanyCarousel().pipe(
+                        tap(carousels => patchState(store, { carousels, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load carousels' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addCarousel: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((carouselData) =>
+                    carouselService.addCarousel(carouselData).pipe(
+                        tap((newCarousel) => {
+                            const currentCarousel: any = store.carousels();
+                            const carousels = [...currentCarousel, newCarousel];
+                            patchState(store, {
+                                carousels,
+                                loading: false,
+                                success: 'Carousel added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add carousel'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateCarousel: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    carouselService.updateCarousel(id, data).pipe(
+                        tap(updatedCarousel => {
+                            const currentCarousels = store.carousels();
+                            const updatedCarousels = currentCarousels.map(carousel =>
+                                carousel.id === id ? { ...carousel, ...updatedCarousel } : carousel
+                            );
+                            patchState(store, {
+                                carousels: updatedCarousels,
+                                loading: false,
+                                success: 'Carousel updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update carousel'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteCarousel: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    carouselService.deleteCarousel(id).pipe(
+                        tap(() => {
+                            const currentCarousels = store.carousels();
+                            const filteredCarousels = currentCarousels.filter(carousel => carousel.id !== id);
+                            patchState(store, {
+                                carousels: filteredCarousels,
+                                loading: false,
+                                success: 'Carousel deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete carousel'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Doctor Methods
+        loadDoctors: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    doctorsService.getCompanyDoctor().pipe(
+                        tap(doctors => patchState(store, { doctors, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load doctors' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addDoctor: rxMethod<FormData>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((doctorData) =>
+                    doctorsService.addDoctor(doctorData).pipe(
+                        tap(newDoctor => {
+                            const currentDoctors = store.doctors();
+                            const doctors = [...currentDoctors, newDoctor];
+                            patchState(store, {
+                                doctors,
+                                loading: false,
+                                success: 'Doctor added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add doctor'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateDoctor: rxMethod<{ id: any; data: FormData }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    doctorsService.updateDoctor(id, data).pipe(
+                        tap(updatedDoctor => {
+                            const currentDoctors = store.doctors();
+                            const updatedDoctors = currentDoctors.map(doctor =>
+                                doctor.id === id ? { ...doctor, ...updatedDoctor } : doctor
+                            );
+                            patchState(store, {
+                                doctors: updatedDoctors,
+                                loading: false,
+                                success: 'Doctor updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update doctor'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteDoctor: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    doctorsService.deleteDoctor(id).pipe(
+                        tap(() => {
+                            const currentDoctors = store.doctors();
+                            const filteredDoctors = currentDoctors.filter(doctor => doctor.id !== id);
+                            patchState(store, {
+                                doctors: filteredDoctors,
+                                loading: false,
+                                success: 'Doctor deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete doctor'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Department Methods
+        loadDepartments: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    departmentService.getDepartments().pipe(
+                        tap(departments => patchState(store, { departments, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load departments' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addDepartment: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((departmentData) =>
+                    departmentService.addDepartment(departmentData).pipe(
+                        tap(newDepartment => {
+                            const currentDepartments = store.departments();
+                            const departments = [...currentDepartments, newDepartment];
+                            patchState(store, {
+                                departments,
+                                loading: false,
+                                success: 'Department added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to add department'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateDepartment: rxMethod<{ id: any; data: any }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    departmentService.updateDepartment(id, data).pipe(
+                        tap(updatedDepartment => {
+                            const currentDepartments = store.departments();
+                            const updatedDepartments = currentDepartments.map(dept =>
+                                dept.id === id ? { ...dept, ...updatedDepartment } : dept
+                            );
+                            patchState(store, {
+                                departments: updatedDepartments,
+                                loading: false,
+                                success: 'Department updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update department'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteDepartment: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    departmentService.deleteDepartment(id).pipe(
+                        tap(() => {
+                            const currentDepartments = store.departments();
+                            const filteredDepartments = currentDepartments.filter(dept => dept.id !== id);
+                            patchState(store, {
+                                departments: filteredDepartments,
+                                loading: false,
+                                success: 'Department deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete department'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // Appointment Methods
+        loadAppointments: rxMethod<{ from: string; to: string }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ from, to }) =>
+                    appointmentsService.getAppointment(from, to).pipe(
+                        tap(appointments => patchState(store, { appointments, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load appointments' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        addAppointment: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((appointmentData) =>
+                    appointmentsService.addAppointment(appointmentData).pipe(
+                        tap((response: any) => {
+                            // Check if the response indicates an error
+                            if (response?.status === 'Error') {
+                                throw new Error(response.message || 'Failed to add appointment');
+                            }
+
+                            // If successful, add to store
+                            const currentAppointments = store.appointments();
+                            patchState(store, {
+                                appointments: [...currentAppointments, response],
+                                loading: false,
+                                success: 'Appointment added successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            // Handle both HTTP errors and business logic errors
+                            const errorMessage = error?.error?.message || error?.message || 'Failed to add appointment';
+                            patchState(store, {
+                                loading: false,
+                                error: errorMessage
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        updateAppointment: rxMethod<{ id: any; data: any }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) =>
+                    appointmentsService.updateAppointment(id, data).pipe(
+                        tap(updatedAppointment => {
+                            // Check if the response indicates an error
+                            if (updatedAppointment?.status === 'Error') {
+                                throw new Error(updatedAppointment.message || 'Failed to update appointment');
+                            }
+                            const currentAppointments = store.appointments();
+                            const updatedAppointments = currentAppointments.map(apt =>
+                                apt.id === id ? { ...apt, ...updatedAppointment } : apt
+                            );
+                            patchState(store, {
+                                appointments: updatedAppointments,
+                                loading: false,
+                                success: 'Appointment updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            // Handle both HTTP errors and business logic errors
+                            const errorMessage = error?.error?.message || error?.message || 'Failed to update appointment';
+                            patchState(store, {
+                                loading: false,
+                                error: errorMessage
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        deleteAppointment: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((id) =>
+                    appointmentsService.deleteAppointment(id).pipe(
+                        tap(() => {
+                            const currentAppointments = store.appointments();
+                            const filteredAppointments = currentAppointments.filter(apt => apt.id !== id);
+                            patchState(store, {
+                                appointments: filteredAppointments,
+                                loading: false,
+                                success: 'Appointment deleted successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to delete appointment'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // User Methods
+        loadUsers: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(() =>
+                    userService.getUsers().pipe(
+                        tap(users => patchState(store, { users, loading: false })),
+                        catchError(error => {
+                            patchState(store, { loading: false, error: 'Failed to load users' });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // User Registration Method
+        registerUser: rxMethod<any>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap((formData) =>
+                    userAuthService.registerUser(formData).pipe(
+                        tap((newUser) => {
+                            const currentUsers = store.users();
+                            const users = [...currentUsers, newUser];
+                            patchState(store, {
+                                users,
+                                loading: false,
+                                success: 'User registered successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to register user'
+                            });
+                            return of(null);
+                        })
+                    )
+                )
+            )
+        ),
+
+        // updateUser method
+        updateUser: rxMethod<{ id: any; data: any }>(
+            pipe(
+                tap(() => patchState(store, { loading: true })),
+                switchMap(({ id, data }) => {
+                    return userService.updateUser(id, data).pipe(
+                        tap(() => {
+                            // Instead of relying on API response, update the store directly
+                            const currentUsers = store.users();
+                            const updatedUsers = currentUsers.map(user => {
+                                if (user.userId == id) {
+                                    // Update the roleIds with the new data
+                                    return {
+                                        ...user,
+                                        roleIds: data // data should be the array of role IDs
+                                    };
+                                }
+                                return user;
+                            });
+                            patchState(store, {
+                                users: updatedUsers,
+                                loading: false,
+                                success: 'User updated successfully',
+                                error: null
+                            });
+                        }),
+                        catchError(error => {
+                            patchState(store, {
+                                loading: false,
+                                error: 'Failed to update user'
+                            });
+                            return of(null);
+                        })
+                    );
+                })
+            )
+        ),
+
+        // Utility Methods
+        clearError: () => {
+            patchState(store, { error: null });
+        },
+
+        resetStore: () => {
+            patchState(store, initialState);
+        },
+
+        // Utility method to get doctor by id
+        getDoctorById: (id: any) => {
+            const doctors = store.doctors();
+            return doctors.find(doc => doc.id === id) || null;
+        },
+
+        getCarouselById: (id: any) => {
+            const carousels = store.carousels();
+            return carousels.find(carousel => carousel.id === id) || null;
+        },
+
+        getGalleryById: (id: any) => {
+            const galleries = store.galleries();
+            return galleries.find(gallery => gallery.id === id) || null;
+        },
+        getServiceById: (id: any) => {
+            const services = store.services();
+            return services.find(service => service.id === id) || null;
+        },
+        getInstrumentById: (id: any) => {
+            const instruments = store.instruments();
+            return instruments.find(instrument => instrument.id === id) || null;
+        },
+        getHospitalNewsById: (id: any) => {
+            const hospitalNews = store.hospitalNews();
+            return hospitalNews.find(news => news.id === id) || null;
+        },
+        getDepartmentById: (id: any) => {
+            const departments = store.departments();
+            return departments.find(dept => dept.id === id) || null;
+        },
+        getHealthNewsById: (id: any) => {
+            const healthNews = store.healthNews();
+            return healthNews.find(news => news.id === id) || null;
+        },
+        getAppointmentById: (id: any) => {
+            const appointments = store.appointments();
+            return appointments.find(appointment => appointment.id === id) || null;
+        }
+    }))
+);

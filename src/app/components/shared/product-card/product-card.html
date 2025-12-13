@@ -1,0 +1,23 @@
+<div
+  class="bg-gray-50 p-3 rounded-lg group overflow-hidden relative z-10 lg:hover:before:bg-black before:absolute before:inset-0 before:opacity-20 before:transition-all"
+>
+  <a [routerLink]="'/product/'+ product()?.id" class="block">
+    <div class="w-full lg:aspect-41/50 aspect-41/40 overflow-hidden mx-auto">
+      <img
+        [src]="ImageApi + product()?.imageUrl"
+        [alt]="product()?.productName"
+        class="h-full w-full object-contain max-lg:p-3"
+      />
+    </div>
+
+    <div
+      class="relative z-50 lg:absolute mx-auto lg:left-0 lg:right-0 lg:-bottom-80 lg:group-hover:bottom-2 bg-white lg:w-11/12 w-full py-4 px-2 rounded-lg transition-all duration-300"
+    >
+      <div class="text-center">
+        <h3 class="text-sm lg:text-[15px] font-semibold text-slate-900">{{product()?.productName}}</h3>
+        <h4 class="text-sm lg:text-base text-blue-600 font-bold mt-2">{{product()?.model}}</h4>
+        <h4 class="text-sm lg:text-base text-yellow-600 font-bold">{{product()?.brand}}</h4>
+      </div>
+    </div>
+  </a>
+</div>
