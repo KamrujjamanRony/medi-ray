@@ -1,7 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
-import { Contact } from '../../../store/contact.slice';
-import { contactStore } from '../../../store/contact.store';
 import { CommonModule } from '@angular/common';
+import { environment } from '../../../../environments/environment';
+import { ContactM } from '../../../utils/models';
+import { ContactS } from '../../../services/contact-s';
 
 @Component({
   selector: 'app-footer',
@@ -10,7 +11,9 @@ import { CommonModule } from '@angular/common';
   styleUrl: './footer.css',
 })
 export class Footer {
-  contactStore = inject(contactStore);
-  contact = signal<Contact>(this.contactStore.contact());
-
+  contactService = inject(ContactS);
+  contact = signal<ContactM>({} as ContactM);
+  ngOnInit() {
+    this.contactService.getCompanyContact(environment.companyCode).subscribe(data => data && this.contact.set(data));
+  }
 }

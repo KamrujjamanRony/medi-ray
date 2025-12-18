@@ -3,10 +3,10 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { CarouselComponent } from "../shared/carousel/carousel";
 import { Hero } from "../shared/hero/hero";
 import { ProductsWrapper } from "../shared/products-wrapper/products-wrapper";
-import { CarouselStore } from '../../store/carousel.store';
-import { ProductStore } from '../../store/product.store';
-import { Carousel } from '../../store/carousel.slice';
-import { Product } from '../../store/product.slice';
+import { environment } from '../../../environments/environment';
+import { CarouselM, ProductM } from '../../utils/models';
+import { ProductS } from '../../services/product-s';
+import { CarouselS } from '../../services/carousel-s';
 
 @Component({
   selector: 'app-home',
@@ -15,19 +15,18 @@ import { Product } from '../../store/product.slice';
   styleUrl: './home.css',
 })
 export class Home {
-  carouselStore = inject(CarouselStore);
-  productStore = inject(ProductStore);
-  carousels = signal<Carousel[]>(this.carouselStore.carousel());
-  products = signal<Product[]>(this.productStore.products().slice(0, 8));
+  carouselService = inject(CarouselS);
+  productService = inject(ProductS);
+  carousels = signal<CarouselM[]>([]);
+  products = signal<ProductM[]>([]);
   renderer = inject(Renderer2);
   // 1. Inject PLATFORM_ID
   private platformId = inject(PLATFORM_ID);
 
   ngOnInit() {
+    this.carouselService.getCompanyCarousel(environment.companyCode).subscribe(data => data && this.carousels.set(data));
+    this.productService.getCompanyProducts(environment.companyCode).subscribe(data => data && this.products.set(data.slice(0, 8)));
     // 2. Wrap the browser-specific code in a platform check
-    if (isPlatformBrowser(this.platformId)) {
-      this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
-    }
+    isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }
-
 }

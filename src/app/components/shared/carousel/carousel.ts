@@ -3,7 +3,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { CommonModule } from '@angular/common';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { environment } from '../../../../environments/environment';
-import { Carousel } from '../../../store/carousel.slice';
+import { CarouselM } from '../../../utils/models';
 
 @Component({
   selector: 'app-carousel',
@@ -16,7 +16,7 @@ import { Carousel } from '../../../store/carousel.slice';
   host: { ngSkipHydration: '' }
 })
 export class CarouselComponent {
-  slides = input<Carousel[]>([]);
+  slides = input<CarouselM[]>([]);
   faSpinner = faSpinner;
   ImageApi = environment.ImageApi;
 

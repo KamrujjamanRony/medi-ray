@@ -1,7 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { RouterLink } from "@angular/router";
 import { environment } from '../../../../environments/environment';
-import { Product } from '../../../store/product.slice';
+import { ProductM } from '../../../utils/models';
 
 @Component({
   selector: 'app-product-card',
@@ -10,7 +10,7 @@ import { Product } from '../../../store/product.slice';
   styleUrl: './product-card.css',
 })
 export class ProductCard {
-  product = input<Product>();
+  product = input<ProductM>();
   ImageApi = environment.ImageApi;
 
 }

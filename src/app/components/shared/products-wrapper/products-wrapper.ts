@@ -1,6 +1,6 @@
 import { Component, input, Input } from '@angular/core';
 import { ProductCard } from "../product-card/product-card";
-import { Product } from '../../../store/product.slice';
+import { ProductM } from '../../../utils/models';
 
 @Component({
   selector: 'app-products-wrapper',
@@ -9,6 +9,6 @@ import { Product } from '../../../store/product.slice';
   styleUrl: './products-wrapper.css',
 })
 export class ProductsWrapper {
-  products = input<Product[]>([]);
+  products = input<ProductM[]>([]);
 
 }

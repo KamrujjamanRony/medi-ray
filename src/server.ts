@@ -5,22 +5,22 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import { join } from 'node:path';
+import jwt from 'jsonwebtoken';
+import { environment } from './environments/environment';
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
-/* ----------------------------------------------------
-   STATIC BROWSER BUILD
------------------------------------------------------*/
+/* -------------------- STATIC -------------------- */
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
-/* ----------------------------------------------------
-   SECURITY HEADERS
------------------------------------------------------*/
+/* -------------------- SECURITY -------------------- */
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -28,195 +28,128 @@ app.use(
   })
 );
 
-/* ----------------------------------------------------
-   ALLOWED FRONTEND DOMAINS
------------------------------------------------------*/
-const allowedDomains = [
-  'http://localhost:4200',
-  'http://localhost:4000',
-  'https://supersoftbd.com',
-  'https://mec.supersoftbd.com',
-];
+app.use(
+  cors({
+    origin: 'http://localhost:4000',
+    credentials: true,
+  })
+);
 
-/* ----------------------------------------------------
-   CORS + DOMAIN WHITELIST
-   - SSR requests (no Origin header) always allowed
------------------------------------------------------*/
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const origin = req.headers.origin;
+/* -------------------- MIDDLEWARE -------------------- */
+app.use(express.json());
+app.use(cookieParser());
 
-  if (!origin) return next(); // SSR request → allowed
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      username: string;
+      companyID: number | null;
+      userMenu: any[];
+    };
+  }
+}
 
-  if (!allowedDomains.includes(origin)) {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied: unauthorized domain',
-    });
+app.use(
+  session({
+    name: 'SESSION_ID',
+    secret: 'super-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // true in HTTPS
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60,
+    },
+  })
+);
+
+/* -------------------- AUTH API -------------------- */
+
+// LOGIN
+app.post('/api/login', async (req, res) => {
+  console.log('LOGIN BODY:', req.body);
+  console.log('API URL:', environment.apiUrl);
+
+  const apiUrl = `${environment.apiUrl}/Authentication/Login`;
+  console.log('FINAL LOGIN URL:', apiUrl);
+
+  const apiRes = await fetch(apiUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req.body),
+  });
+
+  console.log('BACKEND STATUS:', apiRes.status);
+  console.log('BACKEND RESPONSE:', await apiRes.clone().text());
+
+  if (!apiRes.ok) {
+    return res.status(401).json({ message: 'Invalid login' });
   }
 
-  res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-app-origin");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  const data = await apiRes.json();
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+  // JWT cookie
+  res.cookie('ACCESS_TOKEN', data.token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    expires: new Date(data.expiration),
+  });
+
+  // Session data
+  req.session.user = {
+    username: data.username,
+    companyID: data.companyID,
+    userMenu: data.userMenu,
+  };
+
+  return res.json({ success: true });
+});
+
+// CURRENT USER
+app.get('/api/me', (req, res) => {
+  if (req.session.user) {
+    return res.json(req.session.user);
   }
 
-  return next();
+  const token = req.cookies['ACCESS_TOKEN'];
+  if (!token) return res.status(401).json(null);
+
+  try {
+    const decoded: any = jwt.verify(token, 'YOUR_JWT_SECRET');
+
+    req.session.user = {
+      username: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'],
+      companyID: decoded.companyID,
+      userMenu: decoded.userMenu
+    };
+
+    return res.json(req.session.user);
+  } catch {
+    return res.status(401).json(null);
+  }
 });
 
-/* ----------------------------------------------------
-   CLIENT IDENTIFICATION (App Key)
------------------------------------------------------*/
-// app.use((req: Request, res: Response, next: NextFunction) => {
-//   const key = req.headers['x-app-origin'];
-  
-//   // Skip header check for SSR requests (initial page load, static assets, etc.)
-//   const isSSRRequest = req.path.includes('.') || // static files
-//                        req.path === '/' ||       // root route
-//                        req.headers['sec-fetch-dest'] === 'image' || // images
-//                        req.headers['accept']?.includes('image');    // image requests
-  
-//   if (isSSRRequest) {
-//     console.log("SSR/Static request detected, skipping header check");
-//     return next();
-//   }
-//   // console.log('isSSR:', isSSRRequest)          
-//   // console.log("CLIENT KEY:", key);
-//   // console.log("headers:", req.headers);  
-
-//   if (!key || key !== 'supersoftbd-client') {
-//     return res.status(403).json({ message: 'Forbidden: Unauthorized client' });
-//   }
-
-//   return next();
-// });
-
-
-/* ----------------------------------------------------
-   RATE LIMITER
------------------------------------------------------*/
-const apiRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { status: 429, message: 'Too many requests. Slow down.' },
+// LOGOUT
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('SESSION_ID');
+    res.clearCookie('ACCESS_TOKEN');
+    res.json({ success: true });
+  });
 });
 
-/* ----------------------------------------------------
-   API PROXY
------------------------------------------------------*/
-// app.use(
-//   '/api',
-//   apiRateLimiter,
-//   createProxyMiddleware({
-//     target: 'https://mec.supersoftbd.com/apiA',
-//     changeOrigin: true,
-//     pathRewrite: { '^/api': '' },
-//   })
-// );
-
-
-/* ----------------------------
-   IMAGE PROXY WITH TOKEN
----------------------------- */
-// const IMAGE_BACKEND = 'https://mec.supersoftbd.com/Images';
-// const BACKEND_SECRET = process.env['BACKEND_SECRET'] || 'supersoftbd-client';
-
-// // Generate signed token
-// function generateImageToken(filename: string, expiresInSec = 60): string {
-//   const expires = Date.now() + expiresInSec * 1000;
-//   const payload = `${filename}:${expires}`;
-//   const hash = crypto.createHmac('sha256', BACKEND_SECRET).update(payload).digest('hex');
-//   return `${hash}.${expires}`;
-// }
-
-// // Validate signed token
-// function validateImageToken(filename: string, token: string) {
-//   const [hash, expiresStr] = token.split('.');
-//   const expires = parseInt(expiresStr, 10);
-
-//   if (Date.now() > expires) return false;
-
-//   const payload = `${filename}:${expires}`;
-//   const validHash = crypto.createHmac('sha256', BACKEND_SECRET)
-//     .update(payload)
-//     .digest('hex');
-
-//   return hash === validHash;
-// }
-
-// /* --------------------------------------------------
-//    IMAGE SECURITY: Middleware BEFORE proxy
-// -------------------------------------------------- */
-// app.get('/img/:filename', (req: Request, res: Response, next: NextFunction) => {
-//   const { filename } = req.params;
-//   const token = req.query['token'] as string | undefined;
-
-//   // SSR/Internal requests get a bypass
-//   if (req.headers['x-ssr-secret'] === BACKEND_SECRET) {
-//     return next();
-//   }
-
-//   // Validate token for browser
-//   if (!token || !validateImageToken(filename, token)) {
-//     return res.status(403).json({
-//       message: 'Forbidden: Unauthorized access to image'
-//     });
-//   }
-
-//   next();
-// });
-
-// /* --------------------------------------------------
-//    PROXY IMAGE REQUEST AFTER SECURITY CHECK
-// -------------------------------------------------- */
-// app.use(
-//   '/img',
-//   createProxyMiddleware({
-//     target: IMAGE_BACKEND,
-//     changeOrigin: true,
-//     secure: true,
-
-//     // ⭐ Rewrite "/img/filename.jpg?token=xxx" → "/filename.jpg"
-//     pathRewrite: (path: string, req: Request) => {
-//       const filename = req.params['filename'] || path.replace('/img/', '').split('?')[0];
-//       return `/${filename}`;
-//     },
-
-//     on: {
-//       proxyReq: (proxyReq: any, req: Request) => {
-//         // Add SSR secret when internal request
-//         if (req.headers['x-ssr-secret'] === BACKEND_SECRET) {
-//           proxyReq.setHeader('x-ssr-secret', BACKEND_SECRET);
-//         }
-//       },
-//       error: (err: any, req: Request, res: Response) => {
-//         console.error('Image proxy error:', err);
-//         res.status(502).end();
-//       }
-//     }
-//   } as any)
-// );
-
-
-/* ----------------------------------------------------
-   SERVE STATIC FILES
------------------------------------------------------*/
+/* -------------------- STATIC FILES -------------------- */
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
     index: false,
-    redirect: false,
   })
 );
 
-/* ----------------------------------------------------
-   SSR REQUEST HANDLER
------------------------------------------------------*/
-app.use((req: Request, res: Response, next: NextFunction) => {
+/* -------------------- SSR HANDLER -------------------- */
+app.use((req, res, next) => {
   angularApp
     .handle(req)
     .then((response) => {
@@ -229,17 +162,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     .catch(next);
 });
 
-/* ----------------------------------------------------
-   START SERVER
------------------------------------------------------*/
+/* -------------------- START -------------------- */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
-  const port = process.env['PORT'] || 4000;
-  app.listen(port, () => {
-    console.log(`✔ SSR Server running on http://localhost:${port}`);
+  app.listen(4000, () => {
+    console.log('✔ SSR Server running http://localhost:4000');
   });
 }
 
-/* ----------------------------------------------------
-   ANGULAR DEV-SERVER HANDLER (IMPORTANT)
------------------------------------------------------*/
-export const reqHandler = createNodeRequestHandler((req, res) => app(req, res));
+export const reqHandler = createNodeRequestHandler((req, res) =>
+  app(req, res)
+);
