@@ -3,7 +3,6 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { CarouselComponent } from "../shared/carousel/carousel";
 import { Hero } from "../shared/hero/hero";
 import { ProductsWrapper } from "../shared/products-wrapper/products-wrapper";
-import { environment } from '../../../environments/environment';
 import { CarouselM, ProductM } from '../../utils/models';
 import { ProductS } from '../../services/product-s';
 import { CarouselS } from '../../services/carousel-s';
@@ -24,8 +23,8 @@ export class Home {
   private platformId = inject(PLATFORM_ID);
 
   ngOnInit() {
-    this.carouselService.getCompanyCarousel(environment.companyCode).subscribe(data => data && this.carousels.set(data));
-    this.productService.getCompanyProducts(environment.companyCode).subscribe(data => data && this.products.set(data.slice(0, 8)));
+    // this.carouselService.getCompanyCarousel(environment.companyCode).subscribe(data => data && this.carousels.set(data));
+    this.productService.getAllProducts().subscribe(data => data && this.products.set(data.slice(0, 8)));
     // 2. Wrap the browser-specific code in a platform check
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }

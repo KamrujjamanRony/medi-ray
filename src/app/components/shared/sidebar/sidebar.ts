@@ -14,10 +14,22 @@ export class Sidebar {
 
   sidebarData = signal<any[]>([
     {
-      id: 0, label: 'User', icon: 'users', route: '/admin/user'
+      id: 0, label: 'Carousel', icon: 'settings', route: '/admin/carousel'
     },
     {
-      id: 1, label: 'Menu', icon: 'settings', route: '/admin/menu'
+      id: 1, label: 'product', icon: 'settings', route: '/admin/product'
+    },
+    {
+      id: 2, label: 'User', icon: 'users', route: '/admin/user'
+    },
+    {
+      id: 3, label: 'Menu', icon: 'settings', route: '/admin/menu'
+    },
+    {
+      id: 4, label: 'about', icon: 'settings', route: '/admin/about'
+    },
+    {
+      id: 5, label: 'address', icon: 'settings', route: '/admin/address'
     },
   ]);
 

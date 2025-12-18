@@ -10,7 +10,7 @@ export class LoginService {
 
   private readonly http = inject(HttpClient);
 
-  login(data: { username: string; password: string }) {
-    return this.http.post('/api/login', data);
+  login(data: any) {
+    return this.http.post(`${environment.apiUrl}/Authentication/Login`, data);
   }
 }

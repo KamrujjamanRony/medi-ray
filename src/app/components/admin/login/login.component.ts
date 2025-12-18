@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth/auth.service';
 import { switchMap } from 'rxjs/operators';
 import { catchError, of } from 'rxjs';
+import { LoginService } from '../../../services/auth/login.service';
 
 @Component({
   selector: 'app-login',
@@ -14,6 +15,7 @@ import { catchError, of } from 'rxjs';
 })
 export class LoginComponent {
   private authService = inject(AuthService);
+  private LoginService = inject(LoginService);
   private router = inject(Router);
   private fb = inject(NonNullableFormBuilder);
 
@@ -34,28 +36,31 @@ export class LoginComponent {
     return this.form.get(controlName) as FormControl;
   }
 
-  onSubmit() {
-    if (this.form.invalid) return;
-
-    this.loading.set(true);
-
-    this.authService
-      .login(this.form.getRawValue())
-      .pipe(
-        switchMap(() => this.authService.loadUser()),
-        catchError(() => {
-          this.loading.set(false);
-          this.errorMessage.set('Invalid username or password');
-          return of(null);
-        })
-      )
-      .subscribe(user => {
-        this.loading.set(false);
-        if (user) {
-          this.router.navigateByUrl('/admin');
-        }
-      });
-  }
+onSubmit(): void {
+    this.isSubmitted = true;
+    if (this.form.valid) {
+      this.loading.set(true);
+      this.LoginService.login(this.form.value)
+        .subscribe({
+          next: (response: any) => {
+            this.authService.setUser(response);
+            // this.toastService.showMessage('success', 'Successful', 'User Login Successfully!');
+            this.loading.set(false);
+            this.form.reset();
+            this.router.navigate(['/admin']);
+          },
+          error: (error) => {
+            console.error('Error login user:', error);
+            if (error.error.message || error.error.title) {
+              // this.toastService.showMessage('error', 'Error', `${error.error.status} : ${error.error.message || error.error.title}`);
+            }
+          }
+        });
+      this.isSubmitted = true;
+    } else {
+      // this.toastService.showMessage('warn', 'Warning', 'Form is invalid! Please Fill All Recommended Field!');
+    }
+  };
 
 
 

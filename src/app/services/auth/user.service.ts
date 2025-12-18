@@ -19,7 +19,7 @@ export class UserService {
   }
 
   getUser(query: string): Observable<any> {
-    return this.apiCall<any>(`/SearchUser`, 'post');
+    return this.apiCall<any>(`/Search`, 'post', {});
   }
 
   updateUser(id: string | number, updateUserRequest: any): Observable<any> {

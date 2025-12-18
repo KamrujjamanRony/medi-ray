@@ -11,7 +11,7 @@ export class MenuService {
   private readonly http = inject(HttpClient);
 
   private apiCall<T>(endpoint: string, method: 'get' | 'post' | 'put' | 'delete', body?: any): Observable<T> {
-        const url = `${environment.apiUrl}/api/Menu${endpoint}`;
+        const url = `${environment.apiUrl}/Menu${endpoint}`;
         return this.http.request<T>(method, url, { body });
   }
 
@@ -20,7 +20,7 @@ export class MenuService {
   }
 
   getAllMenu(): Observable<any> {
-    return this.apiCall<any>('/SearchMenu', 'post', {});
+    return this.apiCall<any>('/Search', 'post', {});
   }
 
   getMenu(id: any): Observable<any> {
@@ -35,7 +35,7 @@ export class MenuService {
     return this.apiCall<any>(`/DeleteMenu?id=${id}`, 'delete', {});
   }
 
-  generateTreeData(userId: any = ''): Observable<any> {
-    return this.apiCall<any>(`/GenerateTreeData?userId=${userId}`, 'get');
+  generateTreeData(): Observable<any> {
+    return this.apiCall<any>(`/GenerateTreeData`, 'get');
   }
 }

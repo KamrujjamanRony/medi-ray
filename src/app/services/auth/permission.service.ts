@@ -6,7 +6,7 @@ export class PermissionService {
   constructor(private auth: AuthService) {}
 
   hasPermission(moduleName: string, permission: string = ''): boolean {
-    const user = this.auth.user(); // ✅ signal read
+    const user = this.auth.getUser(); // ✅ signal read
 
     if (!user || !user.userMenu) return false;
 

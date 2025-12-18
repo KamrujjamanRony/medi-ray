@@ -1,7 +1,6 @@
 import { Component, inject, PLATFORM_ID, Renderer2, signal } from '@angular/core';
 import { ProductsWrapper } from "../shared/products-wrapper/products-wrapper";
 import { isPlatformBrowser } from '@angular/common';
-import { environment } from '../../../environments/environment';
 import { ProductM } from '../../utils/models';
 import { ProductS } from '../../services/product-s';
 
@@ -19,7 +18,7 @@ export class Products {
   private platformId = inject(PLATFORM_ID);
 
   ngOnInit() {
-    this.productService.getCompanyProducts(environment.companyCode).subscribe(data => data && this.products.set(data));
+    this.productService.getAllProducts().subscribe(data => data && this.products.set(data));
     // 2. Wrap the browser-specific code in a platform check
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }

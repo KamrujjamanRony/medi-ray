@@ -1,305 +1,244 @@
-import { Component, ElementRef, inject, signal, viewChildren, viewChild } from '@angular/core';
-import { FormControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
+import {
+  Component,
+  ElementRef,
+  inject,
+  signal,
+  computed,
+  viewChildren
+} from '@angular/core';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { UserAccessTreeComponent } from '../../shared/user-access-tree/user-access-tree.component';
-import { AllSvgComponent } from '../../shared/all-svg/all-svg.component';
+
 import { UserService } from '../../../services/auth/user.service';
 import { MenuService } from '../../../services/auth/menu.service';
-import { AuthService } from '../../../services/auth/auth.service';
 import { DataFetchService } from '../../../services/auth/useDataFetch';
+import { PermissionService } from '../../../services/auth/permission.service';
+
+import { UserAccessTreeComponent } from '../../shared/user-access-tree/user-access-tree.component';
 import { FieldComponent } from '../../shared/field/field.component';
 import { SearchComponent } from '../../shared/search/search.component';
-import { PermissionService } from '../../../services/auth/permission.service';
+import { AllSvgComponent } from '../../shared/all-svg/all-svg.component';
+
+/* --------------------------------------------
+   Optional: Strong typing for menu permissions
+--------------------------------------------- */
+interface MenuPermission {
+  menuId: number;
+  PermissionKey: string[];
+}
 
 @Component({
   selector: 'app-users',
-  imports: [ReactiveFormsModule, UserAccessTreeComponent, FieldComponent, SearchComponent, CommonModule, AllSvgComponent],
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    CommonModule,
+    UserAccessTreeComponent,
+    FieldComponent,
+    SearchComponent,
+    AllSvgComponent
+  ],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css'
 })
 export class UsersComponent {
-  fb = inject(NonNullableFormBuilder);
+  /* ---------------- DI ---------------- */
+
+  private fb = inject(NonNullableFormBuilder);
   private userService = inject(UserService);
-  private dataFetchService = inject(DataFetchService);
   private menuService = inject(MenuService);
+  private dataFetchService = inject(DataFetchService);
   private permissionService = inject(PermissionService);
-  isView = signal<boolean>(false);
-  isInsert = signal<boolean>(false);
-  isEdit = signal<boolean>(false);
-  isDelete = signal<boolean>(false);
-  filteredUserList = signal<any[]>([]);
-  employeeOption = signal<any[]>([]);
-  highlightedTr: number = -1;
-  selectedUser: any;
 
-  private searchQuery$ = new BehaviorSubject<string>('');
-  userAccessTree = signal<any[]>([]);
-  isLoading$: Observable<any> | undefined;
-  hasError$: Observable<any> | undefined;
+  /* ---------------- SIGNAL STATE ---------------- */
+
+  users = signal<any[]>([]);
+  searchQuery = signal('');
+  userAccessTree = signal<MenuPermission[]>([]);
+  selectedUser = signal<any | null>(null);
+
+  isLoading = signal(false);
+  hasError = signal(false);
+
+  isView = signal(false);
+  isInsert = signal(false);
+  isEdit = signal(false);
+  isDelete = signal(false);
+
+  highlightedTr = signal<number>(-1);
+  isSubmitted = signal(false);
+
   readonly inputRefs = viewChildren<ElementRef>('inputRef');
-  readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
-  isSubmitted = false;
 
-  form = this.fb.group({
-    username: ['', [Validators.required]],
-    password: [''],
-    eId: null,
-    isActive: [true],
-    menuPermissions: [['']],
+  /* ---------------- COMPUTED ---------------- */
+
+  filteredUserList = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+    return this.users()
+      .filter(u => u.username?.toLowerCase().includes(query))
+      .slice(1); // remove first element
   });
 
-  ngOnInit(): void {
-    this.onLoadTreeData("");
-    this.onLoadUsers();
-    this.isView.set(this.permissionService.hasPermission("User"));
-    this.isInsert.set(this.permissionService.hasPermission("User", "create"));
-    this.isEdit.set(this.permissionService.hasPermission("User", "update"));
-    this.isDelete.set(this.permissionService.hasPermission("User", "delete"));
-    console.log(this.isView());
-    console.log(this.isInsert());
-    console.log(this.isEdit());
-    console.log(this.isDelete());
+  /* ---------------- FORM (FIXED TYPES) ---------------- */
 
-    // Focus on the search input when the component is initialized
+  form = this.fb.group({
+    username: this.fb.control('', Validators.required),
+    password: this.fb.control(''),
+    eId: this.fb.control<number | null>(null),
+    isActive: this.fb.control(true),
+    menuPermissions: this.fb.control<MenuPermission[]>([]) // ✅ FIXED
+  });
+
+  /* ---------------- LIFECYCLE ---------------- */
+
+  ngOnInit(): void {
+    this.loadPermissions();
+    this.loadUsers();
+    this.loadTreeData('');
+
     setTimeout(() => {
-      const inputs = this.inputRefs();
-      inputs[0]?.nativeElement.focus();
+      this.inputRefs()?.[0]?.nativeElement.focus();
     }, 10);
   }
 
-  onDisplayEmployee(eId: any) {
-    return eId ? this.employeeOption().find(item => item?.value === eId)?.label : '';
+  /* ---------------- LOADERS ---------------- */
+
+  loadPermissions() {
+    this.isView.set(this.permissionService.hasPermission('User'));
+    this.isInsert.set(this.permissionService.hasPermission('User', 'create'));
+    this.isEdit.set(this.permissionService.hasPermission('User', 'update'));
+    this.isDelete.set(this.permissionService.hasPermission('User', 'delete'));
   }
 
-  onLoadTreeData(userId: any) {
-    this.menuService.generateTreeData(userId).subscribe((data) => {
-      this.userAccessTree.set(data);
-    });
-  }
+  loadUsers() {
+    this.isLoading.set(true);
+    this.hasError.set(false);
 
-  onLoadUsers() {
-    const { data$, isLoading$, hasError$ } = this.dataFetchService.fetchData(this.userService.getUser(""));     // ToDo: user data request due
-
-    this.isLoading$ = isLoading$;
-    this.hasError$ = hasError$;
-    // Combine the original data stream with the search query to create a filtered list
-    combineLatest([
-      data$,
-      this.searchQuery$
-    ]).pipe(
-      map(([data, query]) =>
-        data.filter((UserData: any) =>
-          UserData.username?.toLowerCase().includes(query)
-        )
-      )
-    ).subscribe(filteredData => {
-      filteredData.shift();                   // todo: remove first element of user list
-      this.filteredUserList.set(filteredData)
-    });
-  }
-
-  // Method to filter User list based on search query
-  onSearchUser(event: Event) {
-    const query = (event.target as HTMLInputElement).value.toLowerCase();
-    this.searchQuery$.next(query);
-  }
-
-  // Simplified method to get form controls
-  getControl(controlName: string): FormControl {
-    return this.form.get(controlName) as FormControl;
-  }
-
-
-  handleEnterKey(event: Event, currentIndex: number) {
-    const keyboardEvent = event as KeyboardEvent;
-    event.preventDefault();
-    const allInputs = this.inputRefs();
-    const inputs = allInputs.filter((i: any) => !i.nativeElement.disabled);
-
-    if (currentIndex + 1 < inputs.length) {
-      inputs[currentIndex + 1].nativeElement.focus();
-    } else {
-      this.onSubmit(keyboardEvent);
-    }
-  }
-
-  handleSearchKeyDown(event: KeyboardEvent) {
-    if (this.filteredUserList().length === 0) {
-      return; // Exit if there are no items to navigate
-    }
-
-    if (event.key === 'Tab') {
-      event.preventDefault();
-      const inputs = this.inputRefs();
-      inputs[0].nativeElement.focus();
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault(); // Prevent default scrolling behavior
-      this.highlightedTr = (this.highlightedTr + 1) % this.filteredUserList().length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault(); // Prevent default scrolling behavior
-      this.highlightedTr =
-        (this.highlightedTr - 1 + this.filteredUserList().length) % this.filteredUserList().length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault(); // Prevent form submission
-
-      // Call onUpdate for the currently highlighted item
-      if (this.highlightedTr !== -1) {
-        const selectedItem = this.filteredUserList()[this.highlightedTr];
-        this.onUpdate(selectedItem);
-        this.highlightedTr = -1;
-      }
-    }
-  }
-
-  onSubmit(e: Event) {
-    this.isSubmitted = true;
-    if (this.form.valid) {
-      this.savePermissions();
-      if (this.selectedUser) {
-        this.userService.updateUser(this.selectedUser.id, this.form.value)
-          .subscribe({
-            next: (response) => {
-              if (response !== null && response !== undefined) {
-                // this.toastService.showMessage('success', 'Successful', 'User successfully updated!');
-                this.onLoadUsers();
-                this.isSubmitted = false;
-                this.selectedUser = null;
-                this.formReset(e);
-              }
-
-            },
-            error: (error) => {
-              console.error('Error register:', error);
-              if (error.error.message || error.error.title) {
-                // this.toastService.showMessage('error', 'Error', `${error.error.status} : ${error.error.message || error.error.title}`);
-              }
-            }
-          });
-      } else {
-        this.userService.addUser(this.form.value)
-          .subscribe({
-            next: (response) => {
-              if (response !== null && response !== undefined) {
-                // this.toastService.showMessage('success', 'Successful', 'User successfully added!');
-                this.onLoadUsers();
-                this.isSubmitted = false;
-                this.formReset(e);
-              }
-
-            },
-            error: (error) => {
-              console.error('Error add user:', error);
-              if (error.error.message || error.error.title) {
-                // this.toastService.showMessage('error', 'Error', `${error.error.status} : ${error.error.message || error.error.title}`);
-              }
-            }
-          });
-      }
-    } else {
-      // this.toastService.showMessage('warn', 'Warning', 'Form is invalid! Please Fill All Recommended Field!');
-    }
-  }
-
-  onUpdate(data: any) {
-    this.onLoadTreeData(data.id);
-    this.selectedUser = data;
-    this.form.patchValue({
-      username: data?.username,
-      password: data?.password,
-      eId: data?.eId,
-      isActive: data?.isActive,
-      menuPermissions: data?.menuPermissions,
-    });
-
-    // Focus the 'username' input field after patching the value
-    setTimeout(() => {
-      const inputs = this.inputRefs();
-      inputs[0].nativeElement.focus();
-    }, 0); // Delay to ensure the DOM is updated
-  }
-
-  onDelete(id: any) {
-    if (confirm("Are you sure you want to delete?")) {
-      this.userService.deleteUser(id).subscribe(data => {
-        if (data.id) {
-          // this.toastService.showMessage('success', 'Successful', 'User deleted successfully!');
-          this.filteredUserList.set(this.filteredUserList().filter(d => d.id !== id));
-        } else {
-          console.error('Error deleting User:', data);
-          // this.toastService.showMessage('error', 'Error Deleting', data.message);
+    this.dataFetchService
+      .fetchData(this.userService.getUser(''))
+      .data$
+      .subscribe({
+        next: data => {
+          this.users.set(data ?? []);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.hasError.set(true);
+          this.isLoading.set(false);
         }
       });
-    }
   }
 
-  formReset(e: Event): void {
+  loadTreeData(userId: any) {
+    this.menuService
+      .generateTreeData()
+      .subscribe(tree => this.userAccessTree.set(tree));
+  }
+
+  /* ---------------- SEARCH ---------------- */
+
+  onSearchUser(event: Event) {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  /* ---------------- FORM HELPERS ---------------- */
+
+  getControl(name: string): FormControl {
+    return this.form.get(name) as FormControl;
+  }
+
+  /* ---------------- SUBMIT ---------------- */
+
+  onSubmit(e: Event) {
     e.preventDefault();
+    this.isSubmitted.set(true);
+
+    if (!this.form.valid) return;
+
+    this.form.patchValue({
+      menuPermissions: this.userAccessTree()
+    });
+
+    const request$ = this.selectedUser()
+      ? this.userService.updateUser(
+          this.selectedUser()!.id,
+          this.form.getRawValue()
+        )
+      : this.userService.addUser(this.form.getRawValue());
+
+    request$.subscribe(() => {
+      this.loadUsers();
+      this.formReset();
+    });
+  }
+
+  /* ---------------- UPDATE ---------------- */
+
+  onUpdate(user: any) {
+    this.selectedUser.set(user);
+    this.loadTreeData(user.id);
+
+    this.form.patchValue({
+      username: user.username,
+      password: user.password,
+      eId: user.eId,
+      isActive: user.isActive,
+      menuPermissions: user.menuPermissions ?? []
+    });
+
+    setTimeout(() => {
+      this.inputRefs()?.[0]?.nativeElement.focus();
+    });
+  }
+
+  /* ---------------- DELETE ---------------- */
+
+  onDelete(id: any) {
+    if (!confirm('Are you sure you want to delete?')) return;
+
+    this.userService.deleteUser(id).subscribe(() => {
+      this.users.update(list => list.filter(u => u.id !== id));
+    });
+  }
+
+  /* ---------------- RESET ---------------- */
+
+  formReset() {
     this.form.reset({
       username: '',
       password: '',
       eId: null,
       isActive: true,
-      menuPermissions: [''],
+      menuPermissions: [] // ✅ NO ERROR
     });
-    this.onLoadTreeData("");
-    this.isSubmitted = false;
-    this.selectedUser = null;
+
+    this.selectedUser.set(null);
+    this.isSubmitted.set(false);
+    this.loadTreeData('');
   }
 
-  // User Accessibility Code Start----------------------------------------------------------------
+  /* ---------------- KEYBOARD NAV ---------------- */
 
-  savePermissions() {
-    // const selectedNodes = this.getSelectedNodes(this.userAccessTree());
-    const selectedNodes = this.userAccessTree();
-    // console.log('Selected Access:', selectedNodes);
-    this.form.patchValue({ menuPermissions: selectedNodes });
-  }
+  handleSearchKeyDown(event: KeyboardEvent) {
+    const list = this.filteredUserList();
+    if (!list.length) return;
 
-  private getSelectedNodes(nodes: any[]): any[] {
-    return nodes.reduce((acc: any[], node: any) => {
-      // Recursively update the isSelected property of parent nodes
-      this.updateParentSelection(node);
-
-      // Include node if it is selected or has selected children
-      if (node.isSelected || (node.children && node.children.some((child: any) => child.isSelected))) {
-        const selectedPermissions = node.permissionsKey
-          ?.filter((p: any) => p.isSelected)
-          .map((p: any) => p.permission);
-
-        acc.push({
-          menuId: node.id,
-          PermissionKey: selectedPermissions || [], // Include empty array if no permissions
-        });
-      }
-
-      // Flatten selected children into the same array
-      if (node.children) {
-        acc.push(...this.getSelectedNodes(node.children));
-      }
-
-      return acc;
-    }, []);
-  }
-
-  private updateParentSelection(node: any): boolean {
-    // Check if the node has children
-    if (node.children && node.children.length > 0) {
-      // console.log('Processing node:', node.menuName, 'isSelected:', node.isSelected);
-
-      // Recursively update the isSelected property of children
-      const anyChildSelected = node.children.some((child: any) => this.updateParentSelection(child));
-      // console.log('Any child selected for node', node.menuName, ':', anyChildSelected);
-
-      // Update the current node's isSelected property based on its children
-      node.isSelected = anyChildSelected || node.isSelected;
-      // console.log('Updated node', node.menuName, 'isSelected:', node.isSelected);
-
-      return node.isSelected;
+    if (event.key === 'ArrowDown') {
+      this.highlightedTr.update(i => (i + 1) % list.length);
     }
-    return node.isSelected;
+
+    if (event.key === 'ArrowUp') {
+      this.highlightedTr.update(i => (i - 1 + list.length) % list.length);
+    }
+
+    if (event.key === 'Enter' && this.highlightedTr() !== -1) {
+      this.onUpdate(list[this.highlightedTr()]);
+      this.highlightedTr.set(-1);
+    }
   }
-
-  // User Accessibility Code End----------------------------------------------------------------
-
 }

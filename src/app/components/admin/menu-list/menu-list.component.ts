@@ -1,232 +1,269 @@
+import {
+  Component,
+  ElementRef,
+  inject,
+  signal,
+  computed,
+  viewChild,
+  viewChildren
+} from '@angular/core';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, inject, signal, viewChild, viewChildren } from '@angular/core';
-import { FormControl, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
+
 import { FieldComponent } from '../../shared/field/field.component';
 import { SearchComponent } from '../../shared/search/search.component';
+
 import { MenuService } from '../../../services/auth/menu.service';
 import { DataFetchService } from '../../../services/auth/useDataFetch';
-import { AuthService } from '../../../services/auth/auth.service';
 import { PermissionService } from '../../../services/auth/permission.service';
+
+/* --------------------------------------------
+   Optional typing for menu permissions
+--------------------------------------------- */
+interface Menu {
+  id: number;
+  menuName: string;
+  moduleName?: string;
+  parentMenuId?: number | null;
+  url?: string;
+  isActive: boolean;
+  icon?: string;
+  permissionsKey?: string[];
+}
 
 @Component({
   selector: 'app-menu-list',
-  imports: [CommonModule, FieldComponent, SearchComponent, ReactiveFormsModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FieldComponent,
+    SearchComponent
+  ],
   templateUrl: './menu-list.component.html',
   styleUrl: './menu-list.component.css'
 })
 export class MenuListComponent {
-  fb = inject(NonNullableFormBuilder);
+  /* ---------------- DI ---------------- */
+
+  private fb = inject(NonNullableFormBuilder);
   private menuService = inject(MenuService);
   private dataFetchService = inject(DataFetchService);
-    private permissionService = inject(PermissionService);
-  isView = signal<boolean>(false);
-  isInsert = signal<boolean>(false);
-  isEdit = signal<boolean>(false);
-  isDelete = signal<boolean>(false);
-  filteredMenuList = signal<any[]>([]);
-  menuOptions = signal<any[]>([]);
-  highlightedTr: number = -1;
-  selectedMenu: any;
+  private permissionService = inject(PermissionService);
 
-  private searchQuery$ = new BehaviorSubject<string>('');
-  isLoading$: Observable<any> | undefined;
-  hasError$: Observable<any> | undefined;
-  readonly inputRefs = viewChildren<ElementRef>('inputRef');
-  readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
-  isSubmitted = false;
-  options: any[] = ['View', 'Insert', 'Edit', 'Delete'];
+  /* ---------------- SIGNAL STATE ---------------- */
 
-  form = this.fb.group({
-    menuName: ['', [Validators.required]],
-    moduleName: [''],
-    parentMenuId: [null],
-    url: [''],
-    isActive: [true],
-    icon: [''],
-    permissionsKey: [''],
+  menus = signal<Menu[]>([]);
+  searchQuery = signal('');
+
+  filteredMenuList = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+
+    return this.menus()
+      .filter(menu =>
+        menu.menuName?.toLowerCase().includes(query) ||
+        menu.moduleName?.toLowerCase().includes(query) ||
+        menu.url?.toLowerCase().includes(query) ||
+        String(menu.parentMenuId ?? '').includes(query)
+      )
+      .reverse();
   });
 
-  ngOnInit() {
-    this.onLoadMenu();
-    this.isView.set(this.permissionService.hasPermission("Menu"));
-    this.isInsert.set(this.permissionService.hasPermission("Menu", "create"));
-    this.isEdit.set(this.permissionService.hasPermission("Menu", "update"));
-    this.isDelete.set(this.permissionService.hasPermission("Menu", "delete"));
+  menuOptions = computed(() =>
+    this.menus().map(menu => ({
+      key: menu.id,
+      value: menu.menuName
+    }))
+  );
 
-    // Focus on the search input when the component is initialized
+  selectedMenu = signal<Menu | null>(null);
+
+  isLoading = signal(false);
+  hasError = signal(false);
+
+  isView = signal(false);
+  isInsert = signal(false);
+  isEdit = signal(false);
+  isDelete = signal(false);
+
+  highlightedTr = signal<number>(-1);
+  isSubmitted = signal(false);
+
+  options: string[] = ['View', 'Insert', 'Edit', 'Delete'];
+
+  readonly inputRefs = viewChildren<ElementRef>('inputRef');
+  readonly searchInput =
+    viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
+
+  /* ---------------- FORM (TYPED) ---------------- */
+
+  form = this.fb.group({
+    menuName: this.fb.control('', Validators.required),
+    moduleName: this.fb.control(''),
+    parentMenuId: this.fb.control<number | null>(null),
+    url: this.fb.control(''),
+    isActive: this.fb.control(true),
+    icon: this.fb.control(''),
+    permissionsKey: this.fb.control<string[]>([]) // ✅ FIXED
+  });
+
+  /* ---------------- LIFECYCLE ---------------- */
+
+  ngOnInit(): void {
+    this.loadMenus();
+    this.loadPermissions();
+
     setTimeout(() => {
-      const inputs = this.inputRefs();
-      inputs[0]?.nativeElement?.focus();
-    }, 10); // Delay to ensure the DOM is updated
+      this.inputRefs()?.[0]?.nativeElement.focus();
+    }, 10);
   }
 
-  onLoadMenu() {
-    const { data$, isLoading$, hasError$ } = this.dataFetchService.fetchData(this.menuService.getAllMenu());
+  /* ---------------- LOADERS ---------------- */
 
-    this.isLoading$ = isLoading$;
-    this.hasError$ = hasError$;
-    // Combine the original data stream with the search query to create a filtered list
-    combineLatest([
-      data$,
-      this.searchQuery$
-    ]).pipe(
-      map(([data, query]) =>
-        data.filter((menuData: any) =>
-          menuData.menuName?.toLowerCase().includes(query) ||
-          menuData.moduleName?.toLowerCase().includes(query) ||
-          menuData.parentMenuId == query ||
-          menuData.url?.toLowerCase().includes(query)
-        )
-      )
-    ).subscribe(filteredData => {
-      this.filteredMenuList.set(filteredData.reverse());
-      this.menuOptions.set(filteredData.map((menuData: any) => ({ key: menuData.id, value: menuData.menuName })));
-    });
+  loadPermissions() {
+    this.isView.set(this.permissionService.hasPermission('Menu'));
+    this.isInsert.set(this.permissionService.hasPermission('Menu', 'create'));
+    this.isEdit.set(this.permissionService.hasPermission('Menu', 'update'));
+    this.isDelete.set(this.permissionService.hasPermission('Menu', 'delete'));
   }
 
-  // Method to filter Menu list based on search query
+  loadMenus() {
+    this.isLoading.set(true);
+    this.hasError.set(false);
+
+    this.dataFetchService
+      .fetchData(this.menuService.getAllMenu())
+      .data$
+      .subscribe({
+        next: data => {
+          this.menus.set((data as Menu[]) ?? []);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          this.hasError.set(true);
+          this.isLoading.set(false);
+        }
+      });
+  }
+
+  /* ---------------- SEARCH ---------------- */
+
   onSearchMenu(event: Event) {
-    const query = (event.target as HTMLInputElement).value.toLowerCase();
-    this.searchQuery$.next(query);
+    this.searchQuery.set((event.target as HTMLInputElement).value);
   }
 
-  // Simplified method to get form controls
-  getControl(controlName: string): FormControl {
-    return this.form.get(controlName) as FormControl;
+  /* ---------------- FORM HELPERS ---------------- */
+
+  getControl(name: string): FormControl {
+    return this.form.get(name) as FormControl;
   }
 
   getParentMenuName(menuId: any): string {
-    const parentMenu = this.menuOptions().find(m => m.key === menuId);
-    return parentMenu?.value ?? '';
+    return (
+      this.menuOptions().find(m => m.key === menuId)?.value ?? ''
+    );
   }
 
+  /* ---------------- KEYBOARD NAV ---------------- */
 
   handleEnterKey(event: Event, currentIndex: number) {
-    const keyboardEvent = event as KeyboardEvent;
     event.preventDefault();
-    const allInputs = this.inputRefs();
-    const inputs = allInputs.filter((i: any) => !i.nativeElement.disabled);
+    const inputs = this.inputRefs()?.filter(
+      i => !i.nativeElement.disabled
+    );
+
+    if (!inputs) return;
 
     if (currentIndex + 1 < inputs.length) {
       inputs[currentIndex + 1].nativeElement.focus();
     } else {
-      this.onSubmit(keyboardEvent);
+      this.onSubmit(event);
     }
   }
 
   handleSearchKeyDown(event: KeyboardEvent) {
-    if (this.filteredMenuList().length === 0) {
-      return; // Exit if there are no items to navigate
+    const list = this.filteredMenuList();
+    if (!list.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.highlightedTr.update(i => (i + 1) % list.length);
     }
 
-    if (event.key === 'Tab') {
+    if (event.key === 'ArrowUp') {
       event.preventDefault();
-      const inputs = this.inputRefs();
-      inputs[0].nativeElement.focus();
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault(); // Prevent default scrolling behavior
-      this.highlightedTr = (this.highlightedTr + 1) % this.filteredMenuList().length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault(); // Prevent default scrolling behavior
-      this.highlightedTr =
-        (this.highlightedTr - 1 + this.filteredMenuList().length) % this.filteredMenuList().length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault(); // Prevent form submission
+      this.highlightedTr.update(i => (i - 1 + list.length) % list.length);
+    }
 
-      // Call onUpdate for the currently highlighted item
-      if (this.highlightedTr !== -1) {
-        const selectedItem = this.filteredMenuList()[this.highlightedTr];
-        this.onUpdate(selectedItem);
-        this.highlightedTr = -1;
-      }
+    if (event.key === 'Enter' && this.highlightedTr() !== -1) {
+      event.preventDefault();
+      this.onUpdate(list[this.highlightedTr()]);
+      this.highlightedTr.set(-1);
     }
   }
+
+  /* ---------------- SUBMIT ---------------- */
 
   onSubmit(e: Event) {
-    this.isSubmitted = true;
-    // console.log(this.form.value);
-    if (this.form.valid) {
-      // console.log(this.form.value);
-      if (this.selectedMenu) {
-        this.menuService.updateMenu(this.selectedMenu.id, { ...this.form.value, parentMenuId: this.form.value.parentMenuId || null, permissionsKey: this.form.value.permissionsKey || [] })
-          .subscribe({
-            next: (response) => {
-              if (response !== null && response !== undefined) {
-                // this.toastService.showMessage('success', 'Success', 'Menu successfully updated!');
-                const rest = this.filteredMenuList().filter(d => d.id !== response.id);
-                this.filteredMenuList.set([response, ...rest]);
-                this.isSubmitted = false;
-                this.selectedMenu = null;
-                this.formReset(e);
-                this.onLoadMenu();
-              }
+    e.preventDefault();
+    this.isSubmitted.set(true);
 
-            },
-            error: (error) => {
-              console.error('Error updated Menu:', error);
-              // this.toastService.showMessage('error', 'Error', `Error updated Menu: ${error.error.message || error.error.title}`);
-            }
-          });
-      } else {
-        this.menuService.addMenu({ ...this.form.value, parentMenuId: this.form.value.parentMenuId || null, permissionsKey: this.form.value.permissionsKey || [] })
-          .subscribe({
-            next: (response) => {
-              if (response !== null && response !== undefined) {
-                // this.toastService.showMessage('success', 'Success', 'Menu successfully added!');
-                this.filteredMenuList.set([response, ...this.filteredMenuList()])
-                this.isSubmitted = false;
-                this.formReset(e);
-                this.onLoadMenu();
-              }
+    if (!this.form.valid) return;
 
-            },
-            error: (error) => {
-              console.error('Error added Menu:', error);
-              // this.toastService.showMessage('error', 'Error', `Error added Menu: ${error.error.message || error.error.title}`);
-            }
-          });
-      }
-    } else {
-      // this.toastService.showMessage('warn', 'Warning', 'Form is invalid! Please Fill Menu Name Field!');
-    }
+    const payload = {
+      ...this.form.getRawValue(),
+      parentMenuId: this.form.value.parentMenuId ?? null,
+      permissionsKey: this.form.value.permissionsKey ?? []
+    };
+
+    const request$ = this.selectedMenu()
+      ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)
+      : this.menuService.addMenu(payload);
+
+    request$.subscribe(() => {
+      this.loadMenus();
+      this.formReset();
+    });
   }
 
-  onUpdate(data: any) {
-    this.selectedMenu = data;
+  /* ---------------- UPDATE ---------------- */
+
+  onUpdate(menu: Menu) {
+    this.selectedMenu.set(menu);
+
     this.form.patchValue({
-      menuName: data?.menuName,
-      moduleName: data?.moduleName,
-      parentMenuId: data?.parentMenuId,
-      url: data?.url,
-      isActive: data?.isActive,
-      icon: data?.icon,
-      permissionsKey: data?.permissionsKey,
+      menuName: menu.menuName,
+      moduleName: menu.moduleName ?? '',
+      parentMenuId: menu.parentMenuId ?? null,
+      url: menu.url ?? '',
+      isActive: menu.isActive,
+      icon: menu.icon ?? '',
+      permissionsKey: menu.permissionsKey ?? []
     });
 
-    // Focus the 'Name' input field after patching the value
     setTimeout(() => {
-      const inputs = this.inputRefs();
-      inputs[0].nativeElement.focus();
-    }, 0); // Delay to ensure the DOM is updated
+      this.inputRefs()?.[0]?.nativeElement.focus();
+    });
   }
+
+  /* ---------------- DELETE ---------------- */
 
   onDelete(id: any) {
-    if (confirm("Are you sure you want to delete?")) {
-      this.menuService.deleteMenu(id).subscribe(data => {
-        if (data.id) {
-          // this.toastService.showMessage('success', 'Success', 'Menu successfully deleted!');
-          this.filteredMenuList.set(this.filteredMenuList().filter(d => d.id !== id));
-        } else {
-          console.error('Error deleting Menu:', data);
-          // this.toastService.showMessage('error', 'Error', `Error deleting Menu: ${data.message}`);
-        }
-      });
-    }
+    if (!confirm('Are you sure you want to delete?')) return;
+
+    this.menuService.deleteMenu(id).subscribe(() => {
+      this.menus.update(list => list.filter(m => m.id !== id));
+    });
   }
 
-  formReset(e: Event): void {
-    e.preventDefault();
+  /* ---------------- RESET ---------------- */
+
+  formReset() {
     this.form.reset({
       menuName: '',
       moduleName: '',
@@ -234,10 +271,10 @@ export class MenuListComponent {
       url: '',
       isActive: true,
       icon: '',
-      permissionsKey: '',
+      permissionsKey: []
     });
-    this.isSubmitted = false;
-    this.selectedMenu = null;
-  }
 
+    this.selectedMenu.set(null);
+    this.isSubmitted.set(false);
+  }
 }

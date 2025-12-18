@@ -21,7 +21,7 @@ export class ProductS {
     return from(
       this.cache.getOrSet(
         'all_products',
-        () => lastValueFrom(this.http.get<ProductM[]>(this.url)),
+        () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search",{"companyID": environment.companyCode})),
         5
       )
     );
@@ -57,7 +57,7 @@ export class ProductS {
     return from(
       this.cache.getOrSet(
         `product_${id}`,
-        () => lastValueFrom(this.http.get<ProductM>(`${this.url}/GetProductById?id=${id}`)),
+        () => lastValueFrom(this.http.get<ProductM>(`${this.url}/${id}`)),
         10
       )
     );
@@ -70,11 +70,11 @@ export class ProductS {
     this.cache.clear(`company_${updateProductRequest.companyID}_products`);
     this.cache.clear(`product_${id}`);
     
-    return this.http.put<ProductM>(`${this.url}/EditProduct/${id}`, updateProductRequest);
+    return this.http.put<ProductM>(`${this.url}/${id}`, updateProductRequest);
   }
 
   deleteProduct(id: string): Observable<ProductM> {
-    return this.http.delete<ProductM>(`${this.url}/DeleteProduct?id=${id}`).pipe(
+    return this.http.delete<ProductM>(`${this.url}/${id}`).pipe(
       map(response => {
         // Clear relevant cache
         this.cache.clear('all_products');
