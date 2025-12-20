@@ -43,7 +43,7 @@ export class AboutS {
     return from(
       this.cache.getOrSet(
         `about_item_${id}`,
-        () => lastValueFrom(this.http.get<AboutM>(`${this.url}/GetAboutUsById?id=${id}`)),
+        () => lastValueFrom(this.http.get<AboutM>(`${this.url}/${id}`)),
         10
       )
     );

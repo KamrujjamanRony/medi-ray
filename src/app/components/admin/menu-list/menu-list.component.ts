@@ -17,10 +17,8 @@ import { CommonModule } from '@angular/common';
 
 import { FieldComponent } from '../../shared/field/field.component';
 import { SearchComponent } from '../../shared/search/search.component';
-
-import { MenuService } from '../../../services/auth/menu.service';
-import { DataFetchService } from '../../../services/auth/useDataFetch';
 import { PermissionService } from '../../../services/auth/permission.service';
+import { MenuS } from '../../../services/auth/menu-s';
 
 /* --------------------------------------------
    Optional typing for menu permissions
@@ -52,8 +50,7 @@ export class MenuListComponent {
   /* ---------------- DI ---------------- */
 
   private fb = inject(NonNullableFormBuilder);
-  private menuService = inject(MenuService);
-  private dataFetchService = inject(DataFetchService);
+  private menuService = inject(MenuS);
   private permissionService = inject(PermissionService);
 
   /* ---------------- SIGNAL STATE ---------------- */
@@ -128,7 +125,7 @@ export class MenuListComponent {
   loadPermissions() {
     this.isView.set(this.permissionService.hasPermission('Menu'));
     this.isInsert.set(this.permissionService.hasPermission('Menu', 'create'));
-    this.isEdit.set(this.permissionService.hasPermission('Menu', 'update'));
+    this.isEdit.set(this.permissionService.hasPermission('Menu', 'edit'));
     this.isDelete.set(this.permissionService.hasPermission('Menu', 'delete'));
   }
 
@@ -136,10 +133,7 @@ export class MenuListComponent {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.dataFetchService
-      .fetchData(this.menuService.getAllMenu())
-      .data$
-      .subscribe({
+    this.menuService.getAllMenu().subscribe({
         next: data => {
           this.menus.set((data as Menu[]) ?? []);
           this.isLoading.set(false);

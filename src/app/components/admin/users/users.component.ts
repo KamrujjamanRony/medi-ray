@@ -13,16 +13,15 @@ import {
   Validators
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-
-import { UserService } from '../../../services/auth/user.service';
-import { MenuService } from '../../../services/auth/menu.service';
-import { DataFetchService } from '../../../services/auth/useDataFetch';
 import { PermissionService } from '../../../services/auth/permission.service';
 
 import { UserAccessTreeComponent } from '../../shared/user-access-tree/user-access-tree.component';
 import { FieldComponent } from '../../shared/field/field.component';
 import { SearchComponent } from '../../shared/search/search.component';
 import { AllSvgComponent } from '../../shared/all-svg/all-svg.component';
+import { environment } from '../../../../environments/environment';
+import { UserS } from '../../../services/auth/user-s';
+import { MenuS } from '../../../services/auth/menu-s';
 
 /* --------------------------------------------
    Optional: Strong typing for menu permissions
@@ -50,9 +49,10 @@ export class UsersComponent {
   /* ---------------- DI ---------------- */
 
   private fb = inject(NonNullableFormBuilder);
-  private userService = inject(UserService);
-  private menuService = inject(MenuService);
-  private dataFetchService = inject(DataFetchService);
+  // private userS = inject(userS);
+  private userS = inject(UserS);
+  private menuS = inject(MenuS);
+  // private menuS = inject(menuS);
   private permissionService = inject(PermissionService);
 
   /* ---------------- SIGNAL STATE ---------------- */
@@ -78,18 +78,18 @@ export class UsersComponent {
   /* ---------------- COMPUTED ---------------- */
 
   filteredUserList = computed(() => {
-    const query = this.searchQuery().toLowerCase();
+    const query = this.searchQuery().toLowerCase() || '';
     return this.users()
-      .filter(u => u.username?.toLowerCase().includes(query))
+      .filter(u => u.userName?.toLowerCase().includes(query))
       .slice(1); // remove first element
   });
 
   /* ---------------- FORM (FIXED TYPES) ---------------- */
 
   form = this.fb.group({
+    companyID: this.fb.control(environment.companyCode, Validators.required),
     username: this.fb.control('', Validators.required),
     password: this.fb.control(''),
-    eId: this.fb.control<number | null>(null),
     isActive: this.fb.control(true),
     menuPermissions: this.fb.control<MenuPermission[]>([]) // ✅ FIXED
   });
@@ -118,26 +118,32 @@ export class UsersComponent {
   loadUsers() {
     this.isLoading.set(true);
     this.hasError.set(false);
+    const query = {
+      "companyID": environment.companyCode,
+      "username": "",
+      "postBy": ""
+    }
 
-    this.dataFetchService
-      .fetchData(this.userService.getUser(''))
-      .data$
-      .subscribe({
-        next: data => {
-          this.users.set(data ?? []);
-          this.isLoading.set(false);
-        },
-        error: () => {
-          this.hasError.set(true);
-          this.isLoading.set(false);
-        }
-      });
+
+    this.userS.getUser(query).subscribe({
+      next: data => {
+        this.users.set(data ?? []);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.hasError.set(true);
+        this.isLoading.set(false);
+      }
+    });
   }
 
   loadTreeData(userId: any) {
-    this.menuService
-      .generateTreeData()
-      .subscribe(tree => this.userAccessTree.set(tree));
+    this.menuS
+      .generateTreeData(userId)
+      .subscribe(tree => {
+        console.log(tree);
+        this.userAccessTree.set(tree)
+      });
   }
 
   /* ---------------- SEARCH ---------------- */
@@ -165,11 +171,11 @@ export class UsersComponent {
     });
 
     const request$ = this.selectedUser()
-      ? this.userService.updateUser(
-          this.selectedUser()!.id,
-          this.form.getRawValue()
-        )
-      : this.userService.addUser(this.form.getRawValue());
+      ? this.userS.updateUser(
+        this.selectedUser()!.id,
+        this.form.getRawValue()
+      )
+      : this.userS.addUser(this.form.getRawValue());
 
     request$.subscribe(() => {
       this.loadUsers();
@@ -184,9 +190,9 @@ export class UsersComponent {
     this.loadTreeData(user.id);
 
     this.form.patchValue({
-      username: user.username,
+      username: user.userName,
+      companyID: user.companyID,
       password: user.password,
-      eId: user.eId,
       isActive: user.isActive,
       menuPermissions: user.menuPermissions ?? []
     });
@@ -201,7 +207,7 @@ export class UsersComponent {
   onDelete(id: any) {
     if (!confirm('Are you sure you want to delete?')) return;
 
-    this.userService.deleteUser(id).subscribe(() => {
+    this.userS.deleteUser(id).subscribe(() => {
       this.users.update(list => list.filter(u => u.id !== id));
     });
   }
@@ -212,7 +218,6 @@ export class UsersComponent {
     this.form.reset({
       username: '',
       password: '',
-      eId: null,
       isActive: true,
       menuPermissions: [] // ✅ NO ERROR
     });

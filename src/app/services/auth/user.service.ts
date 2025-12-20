@@ -1,13 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { from, lastValueFrom, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { ProductM } from '../../utils/models';
+import { SimpleCacheService } from '../simple-cache.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
   private readonly http = inject(HttpClient);
+    cache = inject(SimpleCacheService);
+  url = `${environment.apiUrl}/User`;
 
   private apiCall<T>(endpoint: string, method: 'get' | 'post' | 'put' | 'delete', body?: any): Observable<T> {
     const url = `${environment.apiUrl}/User${endpoint}`;
@@ -18,8 +22,8 @@ export class UserService {
     return this.apiCall<void>('', 'post', model);
   }
 
-  getUser(query: string): Observable<any> {
-    return this.apiCall<any>(`/Search`, 'post', {});
+  getUser(query: any): Observable<any> {
+    return this.http.post<any[]>(this.url + "/Search",query);
   }
 
   updateUser(id: string | number, updateUserRequest: any): Observable<any> {

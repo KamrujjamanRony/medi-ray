@@ -36,7 +36,13 @@ export const routes: Routes = [
     component: Admin,
     canActivate: [authGuard], 
     children: [
-      { path: '', redirectTo: 'user', pathMatch: 'full' },
+      { path: '', redirectTo: 'carousel', pathMatch: 'full' },
+      {
+        path: 'carousel',
+        loadComponent: () =>
+          import('./components/admin/carousel-list/carousel-list').then(m => m.CarouselList),
+        data: { preload: true },
+      },
       {
         path: 'user',
         loadComponent: () =>

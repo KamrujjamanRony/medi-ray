@@ -1,7 +1,7 @@
 @if (isView()) {
 <section class="px-10 flex justify-center gap-10">
   <div class="flex flex-col gap-5 w-full border p-4 bg-teal-50 rounded-lg shadow-md">
-    @if (!isInsert()) {
+    @if (isInsert()) {
     <div class="w-full border mb-10">
       <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center mb-5">
         User Form
@@ -128,7 +128,6 @@
           <thead class="text-sm text-gray-50 uppercase bg-gray-800">
             <tr>
               <th scope="col" class="p-1">user Name</th>
-              <th scope="col" class="p-1">Employee Name</th>
               <!-- <th scope="col" class="p-1">password</th> -->
               @if (isEdit() || isDelete()) {
               <th scope="col" class="px-1">Action</th>
@@ -142,7 +141,7 @@
               class="bg-teal-50 border-b hover:bg-teal-600 hover:text-gray-50 cursor-pointer"
             >
               <td scope="row" class="p-1">
-                {{ item?.username }}
+                {{ item?.userName }}
               </td>
               <!-- <td class="p-1">
                 {{ item?.password }}
@@ -155,7 +154,7 @@
                 >
                   <app-all-svg icon="pencil" />
                 </button>
-                } @if (!isDelete()) {
+                } @if (isDelete()) {
                 <button
                   class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-2 py-px rounded"
                   (click)="onDelete(item?.id)"

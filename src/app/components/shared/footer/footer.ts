@@ -1,6 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { environment } from '../../../../environments/environment';
 import { ContactM } from '../../../utils/models';
 import { ContactS } from '../../../services/contact-s';
 
@@ -14,6 +13,6 @@ export class Footer {
   contactService = inject(ContactS);
   contact = signal<ContactM>({} as ContactM);
   ngOnInit() {
-    this.contactService.getCompanyContact(environment.companyCode).subscribe(data => data && this.contact.set(data));
+    this.contactService.getContact(2).subscribe(data => data && this.contact.set(data));
   }
 }

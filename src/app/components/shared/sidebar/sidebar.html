@@ -76,6 +76,20 @@
         }
       </li>
       }
+      <li class="cursor-pointer">
+        <!-- Single Link -->
+        <a
+          (click)="auth.deleteUser()"
+          type="button"
+          class="flex items-center w-full p-2 text-base text-gray-950 transition duration-75 rounded-lg hover:bg-gray-100"
+        >
+          <app-all-svg icon="settings"></app-all-svg>
+          <span
+            class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
+            >Log Out</span
+          >
+        </a>
+      </li>
     </ul>
   </div>
 </aside>

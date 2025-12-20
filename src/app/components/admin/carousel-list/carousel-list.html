@@ -1,0 +1,225 @@
+@if (isView()) {
+<section class="flex flex-col lg:flex-row gap-5">
+  @if (isInsert()) {
+  <div class="w-full md:max-w-xl border mb-10">
+    <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center mb-5">
+      Carousel Form
+    </h1>
+    <form
+      [formGroup]="form"
+      (ngSubmit)="onSubmit($event)"
+      class="min-w-[400px] mx-auto px-2"
+      enctype="multipart/form-data"
+    >
+      <!-- Title -->
+      <Field label="Title">
+        <input
+          #inputRef
+          type="text"
+          [formControl]="getControl('title')"
+          class="block py-2.5 px-0 w-full text-sm text-gray-950 bg-transparent border-0 border-b-2 border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-teal-600 peer"
+          [class.invalid]="
+            (getControl('title').invalid && getControl('title').touched) || isSubmitted
+          "
+          (keydown.enter)="handleEnterKey($event, 0)"
+          required
+        />
+      </Field>
+
+      <!-- Description -->
+      <Field label="Description">
+        <textarea
+          #inputRef
+          [formControl]="getControl('description')"
+          class="block py-2.5 px-0 w-full text-sm text-gray-950 bg-transparent border-0 border-b-2 border-gray-300 appearance-none focus:outline-none focus:ring-0 focus:border-teal-600 peer"
+          (keydown.enter)="handleEnterKey($event, 1)"
+          rows="2"
+        ></textarea>
+      </Field>
+
+      <!-- Image File Upload -->
+      <!-- start  -->
+       
+<div class="flex items-center justify-center w-full">
+  <div class="flex flex-col items-center justify-center w-full h-64 bg-neutral-secondary-medium border border-dashed border-default-strong rounded-base">
+    <div class="flex flex-col items-center justify-center text-body pt-5 pb-6">
+      <svg class="w-8 h-8 mb-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v9m-5 0H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2M8 9l4-5 4 5m1 8h.01"/></svg>
+      <p class="mb-2 text-sm">Click the button below to upload</p>
+      <p class="text-xs mb-4">Max. File Size: <span class="font-semibold">30MB</span></p>
+      <!-- Upload Button -->
+      <button type="button" onclick="document.getElementById('dropzone-file-2').click()" class="inline-flex items-center text-white bg-brand hover:bg-brand-strong box-border border border-transparent focus:ring-4 focus:ring-brand-medium shadow-xs font-medium leading-5 rounded-base text-sm px-3 py-2 focus:outline-none">
+        <svg class="w-4 h-4 me-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="m21 21-3.5-3.5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+        Browse file
+      </button>
+    </div>
+  </div>
+  <!-- Hidden File Input (Outside Label) -->
+  <input
+          #inputRef
+          [formControl]="getControl('imageUrl')" id="dropzone-file-2" type="file" class="hidden" />
+</div>
+
+      <!-- end  -->
+
+      <div class="flex gap-2">
+        <!-- Save/Update -->
+        <input
+          #inputRef
+          type="submit"
+          [value]="selectedCarousel() ? 'Update' : 'Save'"
+          class="text-gray-50 bg-linear-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-teal-300 shadow-lg shadow-teal-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full cursor-pointer"
+          (keydown.enter)="handleEnterKey($event, 8)"
+        />
+
+        <!-- Clear -->
+        <button
+          type="button"
+          (click)="formReset()"
+          class="text-gray-50 bg-linear-to-r from-red-400 via-red-500 to-red-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-red-300 shadow-lg shadow-red-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 cursor-pointer"
+        >
+          Clear
+        </button>
+      </div>
+    </form>
+  </div>
+  }
+
+  <!-- Carousel List Table -->
+  <div class="w-full border mb-10 px-3 max-h-[98vh] overflow-scroll">
+    <h1
+      class="text-xl md:text-3xl font-bold text-teal-500 underline text-center"
+    >
+      Carousel List
+    </h1>
+
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
+      <div class="flex items-end gap-2 flex-col md:flex-row px-2">
+        <div class="w-full max-w-lg">
+          <label for="table-search" class="sr-only">Search</label>
+          <div class="relative mt-1">
+            <div
+              class="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none"
+            >
+              <app-search></app-search>
+            </div>
+            <input
+              #searchInput
+              type="text"
+              id="table-search"
+              autocomplete="off"
+              class="block ps-10 text-xs text-gray-950 border border-gray-300 rounded bg-teal-100 focus:ring-teal-500 focus:border-teal-500 w-full"
+              (input)="onSearchCarousel($event)"
+              (keydown)="handleSearchKeyDown($event)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (isLoading()) {
+      <p class="text-3xl font-bold text-center p-10 text-teal-600">
+        Loading ...
+      </p>
+      }
+      
+      <!-- Error State -->
+      @else if (hasError()) {
+      <p class="text-3xl font-bold text-center p-10 text-red-600">
+        There was an error loading data.
+      </p>
+      }
+      
+      <!-- Empty State -->
+      @else if (filteredCarouselList().length === 0) {
+      <p class="text-3xl font-bold text-center p-10 text-orange-600">
+        No carousels found.
+      </p>
+      }
+      
+      <!-- Table -->
+      @else {
+      <table class="w-full text-sm text-left rtl:text-right text-gray-950 mt-2">
+        <thead class="text-sm text-gray-50 uppercase bg-gray-800">
+          <tr>
+            <th scope="col" class="p-2">Image</th>
+            <th scope="col" class="p-2">Title</th>
+            <th scope="col" class="p-2">Description</th>
+            <th scope="col" class="p-2">Company ID</th>
+            <th scope="col" class="p-2">Status</th>
+            <th scope="col" class="p-2">Order</th>
+            @if (isEdit()) {
+            <th scope="col" class="p-2">Edit</th>
+            }
+            @if (isDelete()) {
+            <th scope="col" class="p-2">Delete</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of filteredCarouselList(); track item?.id || $index) {
+          <tr
+            id="row-{{ $index }}"
+            class="bg-teal-50 border-b hover:bg-teal-600 hover:text-gray-50 cursor-pointer"
+            [class.bg-teal-200]="highlightedTr() === $index"
+          >
+            <!-- Image -->
+            <td class="p-2">
+              @if (item.imageUrl) {
+                <img 
+                  [src]="item.imageUrl" 
+                  alt="Carousel Image" 
+                  class="w-16 h-16 object-cover rounded"
+                />
+              } @else {
+                <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                  <span class="text-gray-500 text-xs">No Image</span>
+                </div>
+              }
+            </td>
+            
+            <!-- Title -->
+            <td scope="row" class="p-2 font-medium">
+              {{ item?.title }}
+            </td>
+            
+            <!-- Description -->
+            <td class="p-2 max-w-xs truncate">
+              {{ item?.description || '-' }}
+            </td>
+            
+            <!-- Edit Button -->
+            @if (isEdit()) {
+            <td class="p-2">
+              <button
+                class="text-yellow-400 hover:text-yellow-600 px-2 py-1 rounded"
+                (click)="onUpdate(item)"
+              >
+                Edit
+              </button>
+            </td>
+            }
+            
+            <!-- Delete Button -->
+            @if (isDelete()) {
+            <td class="p-2">
+              <button
+                class="text-rose-400 hover:text-rose-600 px-2 py-1 rounded"
+                (click)="onDelete(item?.id)"
+              >
+                Delete
+              </button>
+            </td>
+            }
+          </tr>
+          }
+        </tbody>
+      </table>
+      }
+    </div>
+  </div>
+</section>
+} @else {
+<p class="text-3xl font-bold text-center p-10 text-red-600">
+  You don't have permission to view this page.
+</p>
+}

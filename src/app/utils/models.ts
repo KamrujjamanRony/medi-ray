@@ -19,8 +19,7 @@ export interface CarouselM {
     companyID: number;
     title: string;
     description: string;
-    imageUrl: string;
-    imageFile: File | null;
+    imageUrl: any;
 }
 
 export interface ContactM {

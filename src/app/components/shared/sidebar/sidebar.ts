@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { AllSvgComponent } from "../all-svg/all-svg.component";
 import { RouterLink } from "@angular/router";
+import { AuthService } from '../../../services/auth/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -9,6 +10,7 @@ import { RouterLink } from "@angular/router";
   styleUrl: './sidebar.css',
 })
 export class Sidebar {
+  auth = inject(AuthService);
 
 
 
@@ -52,5 +54,4 @@ export class Sidebar {
       this.menuState.set({});
     }
   }
-
 }

@@ -39,11 +39,11 @@ export class ContactS {
   }
 
   // Cached version
-  getContact(id: string): Observable<ContactM> {
+  getContact(id: number): Observable<ContactM> {
     return from(
       this.cache.getOrSet(
         `contact_item_${id}`,
-        () => lastValueFrom(this.http.get<ContactM>(`${this.url}/GetAddressById?id=${id}`)),
+        () => lastValueFrom(this.http.get<ContactM>(`${this.url}/${id}`)),
         10
       )
     );

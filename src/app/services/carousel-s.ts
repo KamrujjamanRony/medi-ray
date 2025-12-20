@@ -19,12 +19,12 @@ export class CarouselS {
   }
 
   // Cached version
-  getAllCarousel(): Observable<CarouselM[]> {
+  getAllCarousel(params: any): Observable<CarouselM[]> {
     return from(
       this.cache.getOrSet(
         'carousel_all',
-        () => lastValueFrom(this.http.get<CarouselM[]>(this.url)),
-        5 // Cache for 5 minutes
+        () => lastValueFrom(this.http.post<CarouselM[]>(`${this.url}/Search`, params)),
+        15 // Cache for 15 minutes
       )
     );
   }
@@ -38,7 +38,7 @@ export class CarouselS {
           const allCarousel = await lastValueFrom(this.http.get<CarouselM[]>(this.url));
           return allCarousel.filter(a => a.companyID === companyID);
         },
-        5
+        15
       )
     );
   }
@@ -49,7 +49,7 @@ export class CarouselS {
       this.cache.getOrSet(
         `carousel_item_${id}`,
         () => lastValueFrom(this.http.get<CarouselM>(`${this.url}/GetCarouselById?id=${id}`)),
-        10 // Cache individual items for 10 minutes
+        15 // Cache individual items for 15 minutes
       )
     );
   }

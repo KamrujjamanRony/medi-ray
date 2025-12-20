@@ -24,18 +24,18 @@ export class MenuService {
   }
 
   getMenu(id: any): Observable<any> {
-    return this.apiCall<any>(`/GetById/${id}`, 'post');
+    return this.apiCall<any>(`/${id}`, 'post');
   }
 
   updateMenu(id: any, updateRequest: any): Observable<any> {
-    return this.apiCall<any>(`/EditMenu/${id}`, 'put', updateRequest);
+    return this.apiCall<any>(`/${id}`, 'put', updateRequest);
   }
 
   deleteMenu(id: any): Observable<any> {
-    return this.apiCall<any>(`/DeleteMenu?id=${id}`, 'delete', {});
+    return this.apiCall<any>(`/${id}`, 'delete', {});
   }
 
-  generateTreeData(): Observable<any> {
-    return this.apiCall<any>(`/GenerateTreeData`, 'get');
+  generateTreeData(id: any): Observable<any> {
+    return this.apiCall<any>(`/GenerateTreeData?userId=${id}`, 'get');
   }
 }

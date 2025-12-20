@@ -1,6 +1,5 @@
 import { Component, inject, PLATFORM_ID, Renderer2, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { environment } from '../../../environments/environment';
 import { AboutM } from '../../utils/models';
 import { AboutS } from '../../services/about-s';
 
@@ -18,7 +17,7 @@ export class AboutComponent {
   private platformId = inject(PLATFORM_ID);
 
   ngOnInit() {
-    this.aboutService.getCompanyAbout(environment.companyCode).subscribe(data => data && this.about.set(data));
+    this.aboutService.getAbout(3).subscribe(data => data && this.about.set(data));
     // 2. Wrap the browser-specific code in a platform check
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }

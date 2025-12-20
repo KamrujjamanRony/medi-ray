@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { Router } from '@angular/router';
 import * as CryptoJS from 'crypto-js'; // npm install crypto-js @types/crypto-js
 
 @Injectable({
@@ -10,13 +11,14 @@ export class AuthService {
   private storageKey = '*_*';
   private encryptionKey = 'your-dynamic-key'; // In production, fetch from API/backend
   private platformId = inject(PLATFORM_ID);
+  private router: Router = inject(Router);
 
   constructor() {
     // Restore from secure storage on service init
-    // this.restoreUser();    // todo: remove this.restoreUser()
+    this.restoreUser();    // todo: remove this.restoreUser()
 
     // Backup to secure storage before page unload
-    window.addEventListener('beforeunload', () => this.deleteUser());      // todo: this.backupUser()   // todo: this.deleteUser()
+    window.addEventListener('beforeunload', () => this.backupUser());      // todo: this.backupUser()   // todo: this.deleteUser()
   }
 
   setUser(user: any) {
@@ -31,6 +33,7 @@ export class AuthService {
   deleteUser() {
     this.memoryCache = null;
     localStorage.removeItem(this.storageKey);
+    this.router.navigate(['/login']);
   }
 
   private backupUser() {
@@ -43,22 +46,22 @@ export class AuthService {
     }
   }
 
-  // private restoreUser() {
-  //   if (isPlatformBrowser(this.platformId)) {
-  //   const encrypted = localStorage.getItem(this.storageKey);
-  //   if (encrypted) {
-  //     try {
-  //       const decrypted = CryptoJS.AES.decrypt(
-  //         encrypted,
-  //         this.encryptionKey
-  //       ).toString(CryptoJS.enc.Utf8);
-  //       this.memoryCache = JSON.parse(decrypted);
-  //     } catch (e) {
-  //       this.deleteUser(); // Clear corrupted data
-  //     }
-  //   }
-  // }
-  // }
+  private restoreUser() {
+    if (isPlatformBrowser(this.platformId)) {
+    const encrypted = localStorage.getItem(this.storageKey);
+    if (encrypted) {
+      try {
+        const decrypted = CryptoJS.AES.decrypt(
+          encrypted,
+          this.encryptionKey
+        ).toString(CryptoJS.enc.Utf8);
+        this.memoryCache = JSON.parse(decrypted);
+      } catch (e) {
+        this.deleteUser(); // Clear corrupted data
+      }
+    }
+  }
+  }
 
   // Hash password before sending to server
   hashPassword(password: string): string {

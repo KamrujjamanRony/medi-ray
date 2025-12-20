@@ -12,7 +12,7 @@ export class SimpleCacheService {
   private cache = signal<Map<string, { data: any; timestamp: number }>>(new Map());
 
   // Get from cache or execute function
-  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMinutes = 5): Promise<T> {
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttlMinutes = 15): Promise<T> {
     const cacheKey = `cache_${key}`;
     const now = Date.now();
     const ttlMs = ttlMinutes * 60 * 1000;
