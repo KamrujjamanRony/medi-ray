@@ -1,75 +1,38 @@
-import {
-  Component,
-  ElementRef,
-  inject,
-  signal,
-  computed,
-  viewChild,
-  viewChildren
-} from '@angular/core';
-import {
-  FormControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { Component, ElementRef, inject, signal, computed, viewChild, viewChildren, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-import { FieldComponent } from '../../shared/field/field.component';
+import { Field, form, required, minLength, email, pattern, customError, validate, debounce, submit } from '@angular/forms/signals';
 import { SearchComponent } from '../../shared/search/search.component';
 import { PermissionService } from '../../../services/auth/permission.service';
 import { MenuS } from '../../../services/auth/menu-s';
+import { FormsModule } from '@angular/forms';
 
-/* --------------------------------------------
-   Optional typing for menu permissions
---------------------------------------------- */
 interface Menu {
   id: number;
   menuName: string;
-  moduleName?: string;
-  parentMenuId?: number | null;
+  parentMenuId?: any;
   url?: string;
   isActive: boolean;
   icon?: string;
-  permissionsKey?: string[];
+  permissionsKey: string[];
+  postBy: string;
 }
 
 @Component({
   selector: 'app-menu-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FieldComponent,
-    SearchComponent
-  ],
+  imports: [CommonModule, SearchComponent, Field, FormsModule],
   templateUrl: './menu-list.component.html',
   styleUrl: './menu-list.component.css'
 })
-export class MenuListComponent {
+export class MenuListComponent implements OnInit {
   /* ---------------- DI ---------------- */
-
-  private fb = inject(NonNullableFormBuilder);
   private menuService = inject(MenuS);
   private permissionService = inject(PermissionService);
 
   /* ---------------- SIGNAL STATE ---------------- */
-
   menus = signal<Menu[]>([]);
   searchQuery = signal('');
-
-  filteredMenuList = computed(() => {
-    const query = this.searchQuery().toLowerCase();
-
-    return this.menus()
-      .filter(menu =>
-        menu.menuName?.toLowerCase().includes(query) ||
-        menu.moduleName?.toLowerCase().includes(query) ||
-        menu.url?.toLowerCase().includes(query) ||
-        String(menu.parentMenuId ?? '').includes(query)
-      )
-      .reverse();
-  });
+  permissionsKey: any;
 
   menuOptions = computed(() =>
     this.menus().map(menu => ({
@@ -91,26 +54,46 @@ export class MenuListComponent {
   highlightedTr = signal<number>(-1);
   isSubmitted = signal(false);
 
-  options: string[] = ['View', 'Insert', 'Edit', 'Delete'];
+  options = [
+    { key: 'view', value: 'View' },
+    { key: 'create', value: 'Insert' },
+    { key: 'edit', value: 'Edit' },
+    { key: 'delete', value: 'Delete' },
+  ];
 
   readonly inputRefs = viewChildren<ElementRef>('inputRef');
-  readonly searchInput =
-    viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
+  readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
 
-  /* ---------------- FORM (TYPED) ---------------- */
+  /* ---------------- FORM MODEL ---------------- */
+  menuModel = signal({
+    menuName: '',
+    parentMenuId: '',
+    url: '',
+    isActive: 'true', // Use string 'true'/'false'
+    icon: '',
+    permissionsKey: ["view"] as any,
+    postBy: ''
+  });
 
-  form = this.fb.group({
-    menuName: this.fb.control('', Validators.required),
-    moduleName: this.fb.control(''),
-    parentMenuId: this.fb.control<number | null>(null),
-    url: this.fb.control(''),
-    isActive: this.fb.control(true),
-    icon: this.fb.control(''),
-    permissionsKey: this.fb.control<string[]>([]) // ✅ FIXED
+  /* ---------------- SIGNAL FORM ---------------- */
+  menuForm = form(this.menuModel, (schemaPath) => {
+    required(schemaPath.menuName, {message: 'Menu Name is required'});
+    required(schemaPath.url, {message: 'Menu URL is required'});
+    validate(schemaPath.url, ({value}) => {
+      if (!value().startsWith('/')) {
+        return {
+          kind: 'https',
+          message: 'URL must start with / symbol'
+        }
+      }
+      return null
+    })
+
+    // Debounce form updates for better performance
+    debounce(schemaPath.menuName, 300);
   });
 
   /* ---------------- LIFECYCLE ---------------- */
-
   ngOnInit(): void {
     this.loadMenus();
     this.loadPermissions();
@@ -121,7 +104,6 @@ export class MenuListComponent {
   }
 
   /* ---------------- LOADERS ---------------- */
-
   loadPermissions() {
     this.isView.set(this.permissionService.hasPermission('Menu'));
     this.isInsert.set(this.permissionService.hasPermission('Menu', 'create'));
@@ -134,111 +116,81 @@ export class MenuListComponent {
     this.hasError.set(false);
 
     this.menuService.getAllMenu().subscribe({
-        next: data => {
-          this.menus.set((data as Menu[]) ?? []);
-          this.isLoading.set(false);
-        },
-        error: () => {
-          this.hasError.set(true);
-          this.isLoading.set(false);
-        }
-      });
+      next: data => {
+        this.menus.set((data as Menu[]) ?? []);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.hasError.set(true);
+        this.isLoading.set(false);
+      }
+    });
   }
 
   /* ---------------- SEARCH ---------------- */
-
   onSearchMenu(event: Event) {
     this.searchQuery.set((event.target as HTMLInputElement).value);
   }
 
   /* ---------------- FORM HELPERS ---------------- */
-
-  getControl(name: string): FormControl {
-    return this.form.get(name) as FormControl;
-  }
-
   getParentMenuName(menuId: any): string {
-    return (
-      this.menuOptions().find(m => m.key === menuId)?.value ?? ''
-    );
-  }
-
-  /* ---------------- KEYBOARD NAV ---------------- */
-
-  handleEnterKey(event: Event, currentIndex: number) {
-    event.preventDefault();
-    const inputs = this.inputRefs()?.filter(
-      i => !i.nativeElement.disabled
-    );
-
-    if (!inputs) return;
-
-    if (currentIndex + 1 < inputs.length) {
-      inputs[currentIndex + 1].nativeElement.focus();
-    } else {
-      this.onSubmit(event);
-    }
-  }
-
-  handleSearchKeyDown(event: KeyboardEvent) {
-    const list = this.filteredMenuList();
-    if (!list.length) return;
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.highlightedTr.update(i => (i + 1) % list.length);
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.highlightedTr.update(i => (i - 1 + list.length) % list.length);
-    }
-
-    if (event.key === 'Enter' && this.highlightedTr() !== -1) {
-      event.preventDefault();
-      this.onUpdate(list[this.highlightedTr()]);
-      this.highlightedTr.set(-1);
-    }
+    return this.menuOptions().find(m => m.key === menuId)?.value ?? '';
   }
 
   /* ---------------- SUBMIT ---------------- */
+  onSubmit(event: Event) {
+    event.preventDefault();
+    if (this.menuForm().valid()) {
+      this.isSubmitted.set(true);
 
-  onSubmit(e: Event) {
-    e.preventDefault();
-    this.isSubmitted.set(true);
+      // Create the payload with proper types
+      const formValue = this.menuForm().value();
 
-    if (!this.form.valid) return;
+      const payload = {
+        menuName: formValue.menuName,
+        parentMenuId: formValue.parentMenuId ? Number(formValue.parentMenuId) : null, // Convert here
+        url: formValue.url,
+        isActive: formValue.isActive === 'true', // Convert string to boolean
+        icon: formValue.icon,
+        permissionsKey: this.permissionsKey, // Use the separate signal
+        postBy: formValue.postBy
+      };
 
-    const payload = {
-      ...this.form.getRawValue(),
-      parentMenuId: this.form.value.parentMenuId ?? null,
-      permissionsKey: this.form.value.permissionsKey ?? []
-    };
+      console.log('Form values:', formValue);
+      console.log('Payload to send:', payload);
 
-    const request$ = this.selectedMenu()
-      ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)
-      : this.menuService.addMenu(payload);
+      const request$ = this.selectedMenu()
+        ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)
+        : this.menuService.addMenu(payload);
 
-    request$.subscribe(() => {
-      this.loadMenus();
-      this.formReset();
-    });
+      request$.subscribe(() => {
+        this.loadMenus();
+        this.formReset();
+      });
+    } else {
+      alert("Form is Invalid!")
+    }
+
   }
 
   /* ---------------- UPDATE ---------------- */
-
   onUpdate(menu: Menu) {
     this.selectedMenu.set(menu);
+    this.permissionsKey = menu.permissionsKey ?? []
 
-    this.form.patchValue({
+    // Update the form model
+    this.menuModel.update(current => ({
+      ...current,
       menuName: menu.menuName,
-      moduleName: menu.moduleName ?? '',
-      parentMenuId: menu.parentMenuId ?? null,
+      parentMenuId: menu.parentMenuId ?? '',
       url: menu.url ?? '',
-      isActive: menu.isActive,
+      isActive: menu.isActive ? 'true' : 'false',
       icon: menu.icon ?? '',
       permissionsKey: menu.permissionsKey ?? []
-    });
+    }));
+
+    // Reset validation states
+    this.menuForm().reset();
 
     setTimeout(() => {
       this.inputRefs()?.[0]?.nativeElement.focus();
@@ -246,7 +198,6 @@ export class MenuListComponent {
   }
 
   /* ---------------- DELETE ---------------- */
-
   onDelete(id: any) {
     if (!confirm('Are you sure you want to delete?')) return;
 
@@ -256,19 +207,21 @@ export class MenuListComponent {
   }
 
   /* ---------------- RESET ---------------- */
-
   formReset() {
-    this.form.reset({
+    // Reset the model
+    this.menuModel.set({
       menuName: '',
-      moduleName: '',
-      parentMenuId: null,
+      parentMenuId: '',
       url: '',
-      isActive: true,
+      isActive: 'true',
       icon: '',
-      permissionsKey: []
+      permissionsKey: [],
+      postBy: '',
     });
-
+    this.permissionsKey = [];
     this.selectedMenu.set(null);
     this.isSubmitted.set(false);
+    // Reset the form state
+    this.menuForm().reset();
   }
 }

@@ -62,7 +62,7 @@ export class UserS {
     this.clearUserCache(id);
 
     return this.http.put<any>(
-      `${this.url}/${id}`,
+      `${this.url}/${id}?userId=${id}`,
       req,
       // { withCredentials: true }
     );
