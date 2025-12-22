@@ -167,9 +167,15 @@ export class MenuListComponent implements OnInit {
         ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)
         : this.menuService.addMenu(payload);
 
-      request$.subscribe(() => {
-        this.loadMenus();
-        this.formReset();
+      request$.subscribe({
+        next: () => {
+          this.loadMenus();
+          this.formReset();
+          this.isSubmitted.set(false);
+        },
+        error: () => {          
+          this.isSubmitted.set(false);
+        }
       });
     } else {
       alert("Form is Invalid!")
@@ -195,10 +201,6 @@ export class MenuListComponent implements OnInit {
 
     // Reset validation states
     this.menuForm().reset();
-
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    });
   }
 
   /* ---------------- DELETE ---------------- */

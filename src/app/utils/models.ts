@@ -37,17 +37,9 @@ export interface ContactM {
 }
 
 export interface ProductM {
-    id: string;
+    id?: any;
     companyID: number;
-    productCategory: string;
-    productName: string;
-    brand: string;
-    model: string;
-    origin: string;
+    title: string;
     description: string;
-    aditionalInformation: string;
-    specialFeature: string;
-    catalogUrl: string | null;
-    imageUrl: string | null;
-    imageFile: string | null;
+    imageUrl: string;
 }

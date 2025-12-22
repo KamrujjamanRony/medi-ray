@@ -48,7 +48,7 @@ export class CarouselS {
     return from(
       this.cache.getOrSet(
         `carousel_item_${id}`,
-        () => lastValueFrom(this.http.get<CarouselM>(`${this.url}/GetCarouselById?id=${id}`)),
+        () => lastValueFrom(this.http.get<CarouselM>(`${this.url}/${id}`)),
         15 // Cache individual items for 15 minutes
       )
     );
@@ -66,12 +66,12 @@ export class CarouselS {
     
     this.cache.clear(`carousel_item_${id}`);
     
-    return this.http.put<CarouselM>(`${this.url}/EditCarousel/${id}`, updateCarouselRequest);
+    return this.http.put<CarouselM>(`${this.url}/${id}`, updateCarouselRequest);
   }
 
   // Clear cache on delete
   deleteCarousel(id: string): Observable<CarouselM> {
-    return this.http.delete<CarouselM>(`${this.url}/DeleteCarousel?id=${id}`).pipe(
+    return this.http.delete<CarouselM>(`${this.url}/${id}`).pipe(
       map(response => {
         // Clear relevant cache
         this.cache.clear('carousel_all');

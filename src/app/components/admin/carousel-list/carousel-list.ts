@@ -1,37 +1,29 @@
-import {
-  Component,
-  ElementRef,
-  inject,
-  signal,
-  computed,
-  viewChild,
-  viewChildren
-} from '@angular/core';
-import {
-  FormControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FieldComponent } from '../../shared/field/field.component';
 import { SearchComponent } from '../../shared/search/search.component';
 import { PermissionService } from '../../../services/auth/permission.service';
 import { CarouselM } from '../../../utils/models';
 import { CarouselS } from '../../../services/carousel-s';
 import { environment } from '../../../../environments/environment';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { Field, form, required, validate, debounce } from '@angular/forms/signals';
 
 @Component({
   selector: 'app-carousel-list',
-  imports: [CommonModule, ReactiveFormsModule, FieldComponent, SearchComponent],
+  imports: [CommonModule, SearchComponent, FontAwesomeModule, Field],
   templateUrl: './carousel-list.html',
   styleUrl: './carousel-list.css',
 })
 export class CarouselList {
+  faPencil = faPencil;
+  faXmark = faXmark;
+  faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
-  private fb = inject(NonNullableFormBuilder);
   private carouselService = inject(CarouselS);
   private permissionService = inject(PermissionService);
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  imgURL = environment.ImageApi;
 
   /* ---------------- SIGNAL STATE ---------------- */
   carousels = signal<CarouselM[]>([]);
@@ -64,26 +56,27 @@ export class CarouselList {
   highlightedTr = signal<number>(-1);
   isSubmitted = signal(false);
 
-  readonly inputRefs = viewChildren<ElementRef>('inputRef');
-  readonly searchInput =
-    viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
+  /* ---------------- FORM MODEL ---------------- */
+  carouselModel = signal({
+    title: '',
+    description: '',
+    companyID: environment.companyCode,
+    imageFile: '',
+    imageUrl: '',
+  });
 
-  /* ---------------- FORM ---------------- */
-  form = this.fb.group({
-    title: this.fb.control<any>('', Validators.required),
-    description: this.fb.control<any>(''),
-    companyID: this.fb.control<number | null>(environment.companyCode, Validators.required),
-    imageUrl: this.fb.control<any>(''),
+  /* ---------------- SIGNAL FORM ---------------- */
+  carouselForm = form(this.carouselModel, (schemaPath) => {
+    required(schemaPath.title, { message: 'Title is required' });
+
+    // Debounce form updates for better performance
+    debounce(schemaPath.title, 300);
   });
 
   /* ---------------- LIFECYCLE ---------------- */
   ngOnInit(): void {
     this.loadCarousels();
     this.loadPermissions();
-
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    }, 10);
   }
 
   /* ---------------- LOADERS ---------------- */
@@ -102,8 +95,8 @@ export class CarouselList {
     this.isLoading.set(true);
     this.hasError.set(false);
     const searchParams = {
-  "companyID": environment.companyCode
-}
+      "companyID": environment.companyCode
+    }
 
     this.carouselService.getAllCarousel(searchParams).subscribe({
       next: (data) => {
@@ -122,149 +115,100 @@ export class CarouselList {
     this.searchQuery.set((event.target as HTMLInputElement).value);
   }
 
-  /* ---------------- FORM HELPERS ---------------- */
-  getControl(name: string): FormControl {
-    return this.form.get(name) as FormControl;
-  }
-
-  /* ---------------- FILE HANDLING ---------------- */
-  onFileSelected(event: Event) {
+  /* ---------------- Image File Handler ---------------- */
+  onFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
+
+    if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.selectedFile.set(file);
 
-      // Create preview URL
       const reader = new FileReader();
-      reader.onload = () => {
-        this.previewUrl.set(reader.result as string);
-      };
+      reader.onload = () => this.previewUrl.set(reader.result as string);
       reader.readAsDataURL(file);
     }
   }
 
-  /* ---------------- KEYBOARD NAVIGATION ---------------- */
-  handleEnterKey(event: Event, currentIndex: number) {
-    event.preventDefault();
-    const inputs = this.inputRefs()?.filter(
-      i => !i.nativeElement.disabled
-    );
-
-    if (!inputs) return;
-
-    if (currentIndex + 1 < inputs.length) {
-      inputs[currentIndex + 1].nativeElement.focus();
-    } else {
-      this.onSubmit(event);
-    }
+  clearFileInput() {
+    setTimeout(() => {
+      const input = document.getElementById('imageUrl') as HTMLInputElement;
+      if (input) {
+        input.value = '';
+      }
+    });
   }
 
-  handleSearchKeyDown(event: KeyboardEvent) {
-    const list = this.filteredCarouselList();
-    if (!list.length) return;
 
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.highlightedTr.update(i => (i + 1) % list.length);
-    }
 
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      this.highlightedTr.update(i => (i - 1 + list.length) % list.length);
-    }
-
-    if (event.key === 'Enter' && this.highlightedTr() !== -1) {
-      event.preventDefault();
-      this.onUpdate(list[this.highlightedTr()]);
-      this.highlightedTr.set(-1);
-    }
-  }
 
   /* ---------------- SUBMIT ---------------- */
-  onSubmit(e: Event) {
-    console.log("clicked");
-    console.log(this.form);
-    console.log(this.form.value);
-    e.preventDefault();
-    this.isSubmitted.set(true);
-    const {title, companyID, imageUrl} = this.form.value;
+  onSubmit(event: Event) {
+    event.preventDefault();
 
-    if (!title || !companyID) {
+    if (!this.carouselForm().valid()) {
+      alert('Form is Invalid!');
       return;
     }
 
-    // Create FormData
+    this.isSubmitted.set(true);
+
+    const formValue = this.carouselForm().value();
     const formData = new FormData();
 
-    // Add form values
-    const formValue = this.form.getRawValue();
-    console.log(formValue);
+    formData.append('CompanyID', String(formValue.companyID));
     formData.append('Title', formValue.title);
-    formData.append('Description', formValue.description);
-    formData.append('CompanyID', formValue.companyID?.toString() || '');
-    formData.append('ImageFile', formValue.imageUrl);
-
-    // Add file if selected
+    formData.append('Description', formValue.description ?? '');
+    console.log(this.selectedFile());
+    // ✅ Append file correctly
     if (this.selectedFile()) {
-      formData.append('imageFile', this.selectedFile()!);
+      formData.append('ImageFile', this.selectedFile() as File);
     }
 
-    if (this.selectedCarousel()) {
-      // Update existing
-      const id = this.selectedCarousel()!.id;
-      this.carouselService.updateCarousel(id, formData).subscribe({
-        next: () => {
-          this.loadCarousels();
-          this.formReset();
-        },
-        error: (err) => {
-          console.error('Update failed:', err);
-          alert('Update failed. Please check the data.');
-        }
-      });
-    } else {
-      // Create new
-      if (!this.selectedFile()) {
-        alert('Please select an image file');
-        return;
+    const request$ = this.selectedCarousel()
+      ? this.carouselService.updateCarousel(this.selectedCarousel()!.id, formData)
+      : this.carouselService.addCarousel(formData);
+
+    request$.subscribe({
+      next: () => {
+        this.loadCarousels();
+        this.formReset();
+        this.isSubmitted.set(false);
+      },
+      error: () => {
+        this.isSubmitted.set(false);
       }
-
-      this.carouselService.addCarousel(formData).subscribe({
-        next: () => {
-          this.loadCarousels();
-          this.formReset();
-        },
-        error: (err) => {
-          console.error('Create failed:', err);
-          alert('Create failed. Please check the data.');
-        }
-      });
-    }
+    });
   }
+
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(carousel: CarouselM) {
     this.selectedCarousel.set(carousel);
 
-    this.form.patchValue({
+    this.carouselModel.update(current => ({
+      ...current,
       title: carousel.title,
       description: carousel.description ?? '',
       companyID: carousel.companyID,
-      imageUrl: carousel.imageUrl ?? '',
-    });
+    }));
 
-    // Set preview from existing imageUrl
-    if (carousel.imageUrl) {
-      this.previewUrl.set(carousel.imageUrl);
-    } else {
-      this.previewUrl.set(null);
-    }
+    this.carouselForm().reset();
+
+    this.previewUrl.set(
+      carousel.imageUrl
+        ? `${environment.apiUrl}/uploads/${carousel.imageUrl}`
+        : null
+    );
+
     this.selectedFile.set(null);
 
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    });
+    // ✅ Clear file input safely
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
+
+
 
   /* ---------------- DELETE ---------------- */
   onDelete(id: any) {
@@ -277,10 +221,11 @@ export class CarouselList {
 
   /* ---------------- RESET ---------------- */
   formReset() {
-    this.form.reset({
+    this.carouselModel.set({
       title: '',
       description: '',
-      companyID: null,
+      companyID: environment.companyCode,
+      imageFile: '',
       imageUrl: '',
     });
 
@@ -288,6 +233,16 @@ export class CarouselList {
     this.selectedFile.set(null);
     this.previewUrl.set(null);
     this.isSubmitted.set(false);
+
+    this.carouselForm().reset();
+    this.clearFileInput();
+
+    // ✅ SAFE way to reset file input
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
   }
+
+
 
 }
