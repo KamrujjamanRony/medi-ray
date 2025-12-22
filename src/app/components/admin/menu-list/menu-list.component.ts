@@ -1,10 +1,11 @@
 import { Component, ElementRef, inject, signal, computed, viewChild, viewChildren, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Field, form, required, minLength, email, pattern, customError, validate, debounce, submit } from '@angular/forms/signals';
-import { SearchComponent } from '../../shared/search/search.component';
+import { Field, form, required, validate, debounce } from '@angular/forms/signals';
 import { PermissionService } from '../../../services/auth/permission.service';
 import { MenuS } from '../../../services/auth/menu-s';
 import { FormsModule } from '@angular/forms';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 interface Menu {
   id: number;
@@ -20,11 +21,14 @@ interface Menu {
 @Component({
   selector: 'app-menu-list',
   standalone: true,
-  imports: [CommonModule, SearchComponent, Field, FormsModule],
+  imports: [CommonModule, FontAwesomeModule, Field, FormsModule],
   templateUrl: './menu-list.component.html',
   styleUrl: './menu-list.component.css'
 })
 export class MenuListComponent implements OnInit {
+  faPencil = faPencil;
+  faXmark = faXmark;
+  faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
   private menuService = inject(MenuS);
   private permissionService = inject(PermissionService);

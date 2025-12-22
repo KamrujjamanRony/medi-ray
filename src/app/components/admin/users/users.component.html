@@ -99,7 +99,7 @@
               <div
                 class="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none"
               >
-                <app-search></app-search>
+                <fa-icon [icon]="faMagnifyingGlass"></fa-icon>
               </div>
               <input
                 #searchInput
@@ -129,9 +129,7 @@
             <tr>
               <th scope="col" class="p-1">user Name</th>
               <!-- <th scope="col" class="p-1">password</th> -->
-              @if (isEdit() || isDelete()) {
-              <th scope="col" class="px-1">Action</th>
-              }
+            @if (isEdit() || isDelete()) { <th scope="col" class="px-1">Actions</th> }
             </tr>
           </thead>
           <tbody>
@@ -146,20 +144,20 @@
               <!-- <td class="p-1">
                 {{ item?.password }}
               </td> -->
-              <td class="flex gap-1">
-                @if (!isEdit()) {
+              <td class="flex gap-1 p-0.5">
+                @if (isEdit()) {
                 <button
-                  class="text-orange-50 bg-orange-400 hover:bg-orange-500 p-1 rounded"
+                  class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-1 py-0.5 rounded cursor-pointer"
                   (click)="onUpdate(item)"
                 >
-                  <app-all-svg icon="pencil" />
+                  <fa-icon [icon]="faPencil"></fa-icon>
                 </button>
                 } @if (isDelete()) {
                 <button
-                  class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-2 py-px rounded"
+                  class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-1 py-0.5 rounded cursor-pointer"
                   (click)="onDelete(item?.id)"
                 >
-                  X
+                  <fa-icon [icon]="faXmark"></fa-icon>
                 </button>
                 }
               </td>

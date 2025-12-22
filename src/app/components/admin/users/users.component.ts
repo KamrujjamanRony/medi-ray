@@ -12,16 +12,15 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { PermissionService } from '../../../services/auth/permission.service';
 
 import { UserAccessTreeComponent } from '../../shared/user-access-tree/user-access-tree.component';
 import { FieldComponent } from '../../shared/field/field.component';
-import { SearchComponent } from '../../shared/search/search.component';
-import { AllSvgComponent } from '../../shared/all-svg/all-svg.component';
 import { environment } from '../../../../environments/environment';
 import { UserS } from '../../../services/auth/user-s';
 import { MenuS } from '../../../services/auth/menu-s';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 
 /* --------------------------------------------
    Optional: Strong typing for menu permissions
@@ -36,16 +35,17 @@ interface MenuPermission {
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    CommonModule,
+    FontAwesomeModule,
     UserAccessTreeComponent,
-    FieldComponent,
-    SearchComponent,
-    AllSvgComponent
+    FieldComponent
   ],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css'
 })
 export class UsersComponent {
+  faPencil = faPencil;
+  faXmark = faXmark;
+  faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
 
   private fb = inject(NonNullableFormBuilder);
@@ -109,9 +109,9 @@ export class UsersComponent {
   /* ---------------- LOADERS ---------------- */
 
   loadPermissions() {
-    this.isView.set(this.permissionService.hasPermission('User'));
+    this.isView.set(this.permissionService.hasPermission('User', 'view'));
     this.isInsert.set(this.permissionService.hasPermission('User', 'create'));
-    this.isEdit.set(this.permissionService.hasPermission('User', 'update'));
+    this.isEdit.set(this.permissionService.hasPermission('User', 'edit'));
     this.isDelete.set(this.permissionService.hasPermission('User', 'delete'));
   }
 

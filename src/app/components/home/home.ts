@@ -6,6 +6,7 @@ import { ProductsWrapper } from "../shared/products-wrapper/products-wrapper";
 import { CarouselM, ProductM } from '../../utils/models';
 import { ProductS } from '../../services/product-s';
 import { CarouselS } from '../../services/carousel-s';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -23,7 +24,10 @@ export class Home {
   private platformId = inject(PLATFORM_ID);
 
   ngOnInit() {
-    // this.carouselService.getCompanyCarousel(environment.companyCode).subscribe(data => data && this.carousels.set(data));
+    const searchParams = {
+  "companyID": environment.companyCode
+}
+    this.carouselService.getAllCarousel(searchParams).subscribe(data => data && this.carousels.set(data));
     this.productService.getAllProducts().subscribe(data => data && this.products.set(data.slice(0, 8)));
     // 2. Wrap the browser-specific code in a platform check
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
