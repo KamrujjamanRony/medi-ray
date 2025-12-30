@@ -1,19 +1,15 @@
 <aside
-  id="sidebar-multi-level-sidebar"
-  class="group fixed top-0 left-0 z-40 w-12 hover:w-72 h-screen overflow-hidden"
+  class="group fixed top-0 left-0 z-40 w-12 hover:w-52 h-screen overflow-hidden bg-emerald-500 hover:bg-emerald-700 hover:rounded-br-4xl hover:rounded-tr-4xl transition-all"
   (mouseenter)="setSidebarHover(true)"
   (mouseleave)="setSidebarHover(false)"
   aria-label="Sidebar"
 >
-  <div class="h-full pl-2 py-4 overflow-hidden bg-teal-300">
-    <ul class="space-y-2 font-medium" id="accordion-collapse">
+  <div class="h-full pl-2 py-4 overflow-hidden">
+    <ul class="space-y-2 font-medium">
       <!-- Logo -->
       <li class="cursor-pointer">
-        <a
-          routerLink="/"
-          class="flex items-center p-2 text-gray-950 rounded-lg hover:bg-gray-100"
-        >
-          <span class="ms-12 text-xl font-bold text-teal-700">SuperSoft</span>
+        <a routerLink="/" class="px-5 py-2 text-xl font-bold text-gray-50 hover:text-emerald-900 rounded-lg hover:bg-gray-100 hover:text-xl group-hover:text-center hover:uppercase transition-all">
+          <span class="ms-12 group-hover:ms-0 transition-all">SuperSoft</span>
         </a>
       </li>
 
@@ -23,23 +19,18 @@
         @if (item?.menu) {
         <button
           type="button"
-          class="flex items-center w-full py-2 px-3 -ml-1 text-gray-950 transition duration-75 rounded-lg hover:bg-gray-100"
+          class="flex items-center w-full py-2 px-3 -ml-1 text-gray-50 hover:text-emerald-900 duration-75 rounded-lg hover:bg-gray-100 hover:text-xl hover:uppercase transition-all"
           [attr.aria-controls]="item.label"
           [attr.data-accordion-target]="'#' + item?.label"
           aria-expanded="menuState()[item.id]"
           (click)="toggleMenu(item.id)"
         >
-          <app-all-svg [icon]="item.icon"></app-all-svg>
-          <span
-            class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap text-gray-950"
-          >
+          <fa-icon [icon]="item.icon"></fa-icon>
+          <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">
             {{ item.label }}
           </span>
-          <app-all-svg
-            [icon]="
-              menuState()[item.id] ? 'sidebar-down-arrow' : 'sidebar-up-arrow'
-            "
-          ></app-all-svg>
+          @if (menuState()[item.id]) {}
+          <fa-icon [icon]="menuState()[item.id] ? faCaretDown : faCaretUp"></fa-icon>
         </button>
 
         <!-- Submenu -->
@@ -47,16 +38,20 @@
           [id]="item?.label"
           [attr.aria-labelledby]="item?.label"
           [class.hidden]="!menuState()[item.id] || !sidebarHovered()"
-          class="py-2 w-[97%] mx-auto bg-teal-200 rounded-lg"
+          class="w-[97%] mx-auto bg-emerald-600 rounded-lg"
         >
           @for (subItem of item.menu; track subItem?.route) {
           <li class="cursor-pointer">
             <a
-              [routerLink]="subItem?.route"
-              class="flex items-center w-full p-2 text-gray-950 transition duration-75 rounded-lg pl-10 hover:bg-gray-100"
-            >
-              {{ subItem.label }}
-            </a>
+          [routerLink]="subItem?.route"
+          type="button"
+          class="flex items-center w-full p-2 text-base text-gray-50 hover:text-emerald-900 duration-75 rounded-lg hover:bg-gray-100 transition-all hover:text-xl hover:uppercase"
+        >
+          <fa-icon [icon]="subItem.icon"></fa-icon>
+          <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">{{
+            subItem.label
+          }}</span>
+        </a>
           </li>
           }
         </ul>
@@ -65,13 +60,12 @@
         <a
           [routerLink]="item?.route"
           type="button"
-          class="flex items-center w-full p-2 text-base text-gray-950 transition duration-75 rounded-lg hover:bg-gray-100"
+          class="flex items-center w-full p-2 text-base text-gray-50 hover:text-emerald-900 duration-75 rounded-lg hover:bg-gray-100 transition-all hover:text-xl hover:uppercase"
         >
-          <app-all-svg [icon]="item.icon"></app-all-svg>
-          <span
-            class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
-            >{{ item.label }}</span
-          >
+          <fa-icon [icon]="item.icon"></fa-icon>
+          <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">{{
+            item.label
+          }}</span>
         </a>
         }
       </li>
@@ -81,13 +75,10 @@
         <a
           (click)="auth.deleteUser()"
           type="button"
-          class="flex items-center w-full p-2 text-base text-gray-950 transition duration-75 rounded-lg hover:bg-gray-100"
+          class="flex items-center w-full p-2 text-base text-gray-50 hover:text-rose-600 duration-75 rounded-lg hover:bg-gray-100 transition-all hover:text-xl hover:uppercase"
         >
-          <app-all-svg icon="settings"></app-all-svg>
-          <span
-            class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
-            >Log Out</span
-          >
+          <fa-icon [icon]="faRightFromBracket"></fa-icon>
+          <span class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap">Log Out</span>
         </a>
       </li>
     </ul>

@@ -1,20 +1,22 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { SimpleCacheService } from './simple-cache.service';
 import { environment } from '../../environments/environment';
 import { CarouselM } from '../utils/models';
 import { from, lastValueFrom, map, Observable } from 'rxjs';
+import { CacheS } from './cache-s';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CarouselS {
   http = inject(HttpClient);
-  cache = inject(SimpleCacheService);
+  cache = inject(CacheS);
   url = `${environment.apiUrl}/Carousel`;
 
   // No cache for create operations
   addCarousel(model: CarouselM | FormData): Observable<CarouselM> {
+    // Clear relevant cache entries
+    this.cache.clear('carousel_all');
     return this.http.post<CarouselM>(this.url, model);
   }
 

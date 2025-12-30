@@ -43,3 +43,14 @@ export interface ProductM {
     description: string;
     imageUrl: string;
 }
+
+export interface MenuM {
+  id: number;
+  menuName: string;
+  parentMenuId?: any;
+  url?: string;
+  isActive: boolean;
+  icon?: string;
+  permissionsKey: string[];
+  postBy: string;
+}

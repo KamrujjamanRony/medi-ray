@@ -1,16 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { SimpleCacheService } from './simple-cache.service';
 import { environment } from '../../environments/environment';
 import { from, lastValueFrom, Observable } from 'rxjs';
 import { AboutM } from '../utils/models';
+import { CacheS } from './cache-s';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AboutS {
   http = inject(HttpClient);
-  cache = inject(SimpleCacheService);
+  cache = inject(CacheS);
   url = `${environment.apiUrl}/AboutUs`;
 
   // Cached version

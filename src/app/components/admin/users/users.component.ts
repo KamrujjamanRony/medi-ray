@@ -1,26 +1,12 @@
-import {
-  Component,
-  ElementRef,
-  inject,
-  signal,
-  computed,
-  viewChildren
-} from '@angular/core';
-import {
-  FormControl,
-  NonNullableFormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
-import { PermissionService } from '../../../services/auth/permission.service';
-
+import { Component, inject, signal, computed } from '@angular/core';
 import { UserAccessTreeComponent } from '../../shared/user-access-tree/user-access-tree.component';
-import { FieldComponent } from '../../shared/field/field.component';
 import { environment } from '../../../../environments/environment';
 import { UserS } from '../../../services/auth/user-s';
 import { MenuS } from '../../../services/auth/menu-s';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
+import { Field, form, required, validate, debounce, minLength, maxLength } from '@angular/forms/signals';
+import { PermissionS } from '../../../services/auth/permission-s';
 
 /* --------------------------------------------
    Optional: Strong typing for menu permissions
@@ -34,10 +20,9 @@ interface MenuPermission {
   selector: 'app-users',
   standalone: true,
   imports: [
-    ReactiveFormsModule,
     FontAwesomeModule,
     UserAccessTreeComponent,
-    FieldComponent
+    Field
   ],
   templateUrl: './users.component.html',
   styleUrl: './users.component.css'
@@ -47,13 +32,9 @@ export class UsersComponent {
   faXmark = faXmark;
   faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
-
-  private fb = inject(NonNullableFormBuilder);
-  // private userS = inject(userS);
   private userS = inject(UserS);
   private menuS = inject(MenuS);
-  // private menuS = inject(menuS);
-  private permissionService = inject(PermissionService);
+  private permissionService = inject(PermissionS);
 
   /* ---------------- SIGNAL STATE ---------------- */
 
@@ -71,9 +52,6 @@ export class UsersComponent {
   isDelete = signal(false);
 
   highlightedTr = signal<number>(-1);
-  isSubmitted = signal(false);
-
-  readonly inputRefs = viewChildren<ElementRef>('inputRef');
 
   /* ---------------- COMPUTED ---------------- */
 
@@ -81,17 +59,36 @@ export class UsersComponent {
     const query = this.searchQuery().toLowerCase() || '';
     return this.users()
       .filter(u => u.userName?.toLowerCase().includes(query))
-      .slice(1); // remove first element
+    // .slice(1); // remove first element
   });
 
-  /* ---------------- FORM (FIXED TYPES) ---------------- */
+  /* ---------------- FORM MODEL ---------------- */
+  model = signal({
+    username: '',
+    password: '',
+    companyID: environment.companyCode,
+    isActive: 'true',
+    menuPermissions: [],
+  });
 
-  form = this.fb.group({
-    companyID: this.fb.control(environment.companyCode, Validators.required),
-    username: this.fb.control('', Validators.required),
-    password: this.fb.control(''),
-    isActive: this.fb.control(true),
-    menuPermissions: this.fb.control<MenuPermission[]>([]) // ✅ FIXED
+  /* ---------------- SIGNAL FORM ---------------- */
+  form = form(this.model, (schemaPath) => {
+    required(schemaPath.username, { message: 'Username is required' });
+    required(schemaPath.password, { message: 'Password is required' });
+    minLength(schemaPath.password, 6, { message: 'Password must be at least 6 character' })
+    maxLength(schemaPath.password, 18, { message: 'Password cannot exceed 18 character' })
+    validate(schemaPath.password, ({ value }) => {
+      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+      if (!specialCharRegex.test(value())) {
+        return {
+          kind: 'complexity',
+          message: 'Password must contain at least one special character'
+        }
+      }
+      return null
+    })
+    debounce(schemaPath.username, 500);
+    debounce(schemaPath.password, 500);
   });
 
   /* ---------------- LIFECYCLE ---------------- */
@@ -100,10 +97,6 @@ export class UsersComponent {
     this.loadPermissions();
     this.loadUsers();
     this.loadTreeData('');
-
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    }, 10);
   }
 
   /* ---------------- LOADERS ---------------- */
@@ -141,65 +134,66 @@ export class UsersComponent {
     this.menuS
       .generateTreeData(userId)
       .subscribe(tree => {
-        console.log(tree);
         this.userAccessTree.set(tree)
       });
   }
 
   /* ---------------- SEARCH ---------------- */
 
-  onSearchUser(event: Event) {
+  onSearch(event: Event) {
     this.searchQuery.set((event.target as HTMLInputElement).value);
   }
 
-  /* ---------------- FORM HELPERS ---------------- */
-
-  getControl(name: string): FormControl {
-    return this.form.get(name) as FormControl;
-  }
-
   /* ---------------- SUBMIT ---------------- */
+  onSubmit(event: Event) {
+    event.preventDefault();
+    if (this.form().valid() && this.userAccessTree().length > 0) {
 
-  onSubmit(e: Event) {
-    e.preventDefault();
-    this.isSubmitted.set(true);
+      // Create the payload with proper types
+      const formValue = this.form().value();
 
-    if (!this.form.valid) return;
+      const payload = {
+        username: formValue.username,
+        password: formValue.password,
+        companyID: formValue.companyID,
+        isActive: formValue.isActive === 'true', // Convert string to boolean
+        menuPermissions: this.userAccessTree(),
+      };
 
-    this.form.patchValue({
-      menuPermissions: this.userAccessTree()
-    });
+      const request$ = this.selectedUser()
+        ? this.userS.updateUser(this.selectedUser()!.id, payload)
+        : this.userS.addUser(payload);
 
-    const request$ = this.selectedUser()
-      ? this.userS.updateUser(
-        this.selectedUser()!.id,
-        this.form.getRawValue()
-      )
-      : this.userS.addUser(this.form.getRawValue());
-
-    request$.subscribe(() => {
-      this.loadUsers();
-      this.formReset();
-    });
+      request$.subscribe({
+        next: () => {
+          this.loadUsers();
+          this.formReset();
+        },
+        error: () => {}
+      });
+    } else {
+      alert("Form is Invalid!")
+    }
   }
 
   /* ---------------- UPDATE ---------------- */
-
   onUpdate(user: any) {
-    this.selectedUser.set(user);
+    console.log('on click update button');
+    this.selectedUser.set({...user, username: user.userName});
     this.loadTreeData(user.id);
 
-    this.form.patchValue({
+    // Update the form model
+    this.model.update(current => ({
+      ...current,
       username: user.userName,
-      companyID: user.companyID,
-      password: user.password,
-      isActive: user.isActive,
+      password: user.password ?? '',
+      companyID: user.companyID ?? environment.companyCode,
+      isActive: user.isActive ? 'true' : 'false',
       menuPermissions: user.menuPermissions ?? []
-    });
+    }));
 
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    });
+    // Reset validation states
+    this.form().reset();
   }
 
   /* ---------------- DELETE ---------------- */
@@ -213,37 +207,17 @@ export class UsersComponent {
   }
 
   /* ---------------- RESET ---------------- */
-
   formReset() {
-    this.form.reset({
+    // Reset the model
+    this.model.set({
       username: '',
       password: '',
-      isActive: true,
-      menuPermissions: [] // ✅ NO ERROR
+      companyID: environment.companyCode,
+      isActive: 'true',
+      menuPermissions: [],
     });
-
-    this.selectedUser.set(null);
-    this.isSubmitted.set(false);
     this.loadTreeData('');
-  }
-
-  /* ---------------- KEYBOARD NAV ---------------- */
-
-  handleSearchKeyDown(event: KeyboardEvent) {
-    const list = this.filteredUserList();
-    if (!list.length) return;
-
-    if (event.key === 'ArrowDown') {
-      this.highlightedTr.update(i => (i + 1) % list.length);
-    }
-
-    if (event.key === 'ArrowUp') {
-      this.highlightedTr.update(i => (i - 1 + list.length) % list.length);
-    }
-
-    if (event.key === 'Enter' && this.highlightedTr() !== -1) {
-      this.onUpdate(list[this.highlightedTr()]);
-      this.highlightedTr.set(-1);
-    }
+    this.selectedUser.set(null);
+    this.form().reset();
   }
 }

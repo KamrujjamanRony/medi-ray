@@ -1,27 +1,29 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { SimpleCacheService } from './simple-cache.service';
 import { environment } from '../../environments/environment';
 import { ProductM } from '../utils/models';
 import { from, lastValueFrom, map, Observable } from 'rxjs';
+import { CacheS } from './cache-s';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductS {
   http = inject(HttpClient);
-  cache = inject(SimpleCacheService);
+  cache = inject(CacheS);
   url = `${environment.apiUrl}/Product`;
 
-  addProduct(model: ProductM | FormData): Observable<ProductM> {
+  addProduct(model: FormData): Observable<ProductM> {
+    // Clear relevant cache entries
+    this.cache.clear('all_products');
     return this.http.post<ProductM>(this.url, model);
   }
 
-  getAllProducts(): Observable<ProductM[]> {
+  getAllProducts(params: any): Observable<ProductM[]> {
     return from(
       this.cache.getOrSet(
         'all_products',
-        () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search",{"companyID": environment.companyCode})),
+        () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
         5
       )
     );

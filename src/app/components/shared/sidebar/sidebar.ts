@@ -1,37 +1,47 @@
 import { Component, inject, signal } from '@angular/core';
-import { AllSvgComponent } from "../all-svg/all-svg.component";
 import { RouterLink } from "@angular/router";
-import { AuthService } from '../../../services/auth/auth.service';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faImage, faXRay, faUser, faRectangleList, faAddressCard, faAddressBook, faRightFromBracket, faCaretDown, faCaretUp } from '@fortawesome/free-solid-svg-icons';
+import { AuthS } from '../../../services/auth/auth-s';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [AllSvgComponent, RouterLink],
+  imports: [RouterLink, FontAwesomeModule],
   templateUrl: './sidebar.html',
   styleUrl: './sidebar.css',
 })
 export class Sidebar {
-  auth = inject(AuthService);
+  faCaretDown = faCaretDown;
+  faCaretUp = faCaretUp;
+  faImage = faImage;
+  faXRay = faXRay;
+  faUser = faUser;
+  faRectangleList = faRectangleList;
+  faAddressCard = faAddressCard;
+  faAddressBook = faAddressBook;
+  faRightFromBracket = faRightFromBracket;
+  auth = inject(AuthS);
 
 
 
   sidebarData = signal<any[]>([
     {
-      id: 0, label: 'Carousel', icon: 'settings', route: '/admin/carousel'
+      id: 0, label: 'Carousel', icon: faImage, route: '/admin/carousel'
     },
     {
-      id: 1, label: 'product', icon: 'settings', route: '/admin/product'
+      id: 1, label: 'Product', icon: faXRay, route: '/admin/product'
     },
     {
-      id: 2, label: 'User', icon: 'users', route: '/admin/user'
+      id: 2, label: 'User', icon: faUser, route: '/admin/user'
     },
     {
-      id: 3, label: 'Menu', icon: 'settings', route: '/admin/menu'
+      id: 3, label: 'Menu', icon: faRectangleList, route: '/admin/menu'
     },
     {
-      id: 4, label: 'about', icon: 'settings', route: '/admin/about'
+      id: 4, label: 'About', icon: faAddressCard, route: '/admin/about'
     },
     {
-      id: 5, label: 'address', icon: 'settings', route: '/admin/address'
+      id: 5, label: 'Address', icon: faAddressBook, route: '/admin/address'
     },
   ]);
 

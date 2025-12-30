@@ -2,84 +2,134 @@
 <section class="flex flex-col lg:flex-row gap-5">
   @if (isInsert()) {
   <div class="w-full md:max-w-xl border mb-10 px-2">
-    <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center mb-5">
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center mb-5">
       Menu Form
     </h1>
     <form (submit)="onSubmit($event)" class="space-y-1">
       <!-- menuName -->
       <div>
-        <label for="menuName" class="block text-sm font-medium text-heading"
-          >Menu Name *</label
-        >
-        <input
-          type="text"
-          id="menuName"
-          [field]="menuForm.menuName"
-          class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body"
-          placeholder="Enter here"
-        />
-        @if (menuForm.menuName().invalid() && menuForm.menuName().touched()) {
-          <ul>
-            @for (error of menuForm.menuName().errors(); track error) {
-              <li class="mt-1 text-sm text-red-600">{{error.message}}</li>
-            }
-          </ul>        
+        @let menuName = form.menuName(); @let menuNameError = form.menuName().invalid() &&
+        form.menuName().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.menuName"
+            id="menuName"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="menuName"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase"
+            >menu Name</label
+          >
+        </div>
+        @if (menuNameError) {
+        <ul class="-mt-2 mb-2 unordered-list-disc list-inside">
+          @for (error of menuName.errors(); track error) {
+          <li class="text-sm text-red-600 list-disc">{{ error.message }}</li>
+          }
+        </ul>
         }
       </div>
 
-      <!-- Parent Menu -->
+      <!-- parentMenuId -->
       <div>
-        <label for="moduleName" class="block text-sm font-medium text-heading"
-          >Parent Menu</label
-        >
-        <select
-          [field]="menuForm.parentMenuId"
-          class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body"
-        >
-          <option value="">Select Parent Menu</option>
-          @for(option of menuOptions(); track $index){
-          <option [value]="option?.key">{{ option?.value }}</option>
+        @let parentMenuId = form.parentMenuId(); @let parentMenuIdError =
+        form.parentMenuId().invalid() && form.parentMenuId().touched();
+        <div class="relative pb-2">
+          <select
+            [field]="form.parentMenuId"
+            id="parentMenuId"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+          >
+            <option value="">Select Parent Menu</option>
+            @for(option of menuOptions(); track $index){
+            <option [value]="option?.key">{{ option?.value }}</option>
+            }
+          </select>
+          <label
+            for="parentMenuId"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase"
+            >Parent menu</label
+          >
+        </div>
+        @if (parentMenuIdError) {
+        <ul class="-mt-2 mb-2 unordered-list-disc list-inside">
+          @for (error of parentMenuId.errors(); track error) {
+          <li class="text-sm text-red-600 list-disc">{{ error.message }}</li>
           }
-        </select>
+        </ul>
+        }
       </div>
 
       <!-- url -->
       <div>
-        <label for="url" class="block text-sm font-medium text-heading"
-          >URL *</label
-        >
-        <input
-          type="text"
-          id="url"
-          [field]="menuForm.url"
-          class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body"
-          placeholder="Enter here"
-        />
-        @if (menuForm.url().invalid() && menuForm.url().touched()) {
-          <ul>
-            @for (error of menuForm.url().errors(); track error) {
-              <li class="text-sm text-red-600">{{error.message}}</li>
-            }
-          </ul>        
+        @let url = form.url(); @let urlError = form.url().invalid() && form.url().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.url"
+            id="url"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="url"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase"
+            >menu url</label
+          >
+        </div>
+        @if (urlError) {
+        <ul class="-mt-2 mb-2 unordered-list-disc list-inside">
+          @for (error of url.errors(); track error) {
+          <li class="text-sm text-red-600 list-disc">{{ error.message }}</li>
+          }
+        </ul>
         }
       </div>
 
-      <!-- permissionsKey -->
+      <!-- icon -->
       <div>
-        <label for="permissionsKey" class="block text-sm font-medium text-heading"
-          >permissionsKey</label
-        >
-        <select multiple
-          id="permissionsKey" name="permissionsKey" [(ngModel)]="permissionsKey"
-          class="block w-full bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body"
-        >
-          @for(option of options; track $index){
-          <option [value]="option?.key">{{ option?.value }}</option>
+        @let icon = form.icon(); @let iconError = form.icon().invalid() && form.icon().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.icon"
+            id="icon"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="icon"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase"
+            >menu icon</label
+          >
+        </div>
+        @if (iconError) {
+        <ul class="-mt-2 mb-2 unordered-list-disc list-inside">
+          @for (error of icon.errors(); track error) {
+          <li class="text-sm text-red-600 list-disc">{{ error.message }}</li>
           }
-        </select>
-        @if (menuForm.permissionsKey().invalid() && menuForm.permissionsKey().touched()) {
-        <p class="mt-1 text-sm text-red-600">URL is required</p>
+        </ul>
         }
+      </div>
+
+      <!-- Menu Permissions Multi-Select -->
+      <div class="relative pb-2">
+        <label
+          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase mt-2"
+          >Menu Permissions</label
+        >
+        <multi-select
+          [options]="permissionOptions()"
+          placeholder="Select menu permissions"
+          [(ngModel)]="permissionsKey"
+          [ngModelOptions]="{ standalone: true }"
+        ></multi-select>
       </div>
 
       <!-- Is Active Radio Buttons -->
@@ -89,16 +139,16 @@
           <label class="inline-flex items-center">
             <input
               type="radio"
-              [field]="menuForm.isActive"
+              [field]="form.isActive"
               value="true"
-              class="h-4 w-4 border-gray-300 text-teal-600 focus:ring-teal-500"
+              class="h-4 w-4 border-gray-300 text-emerald-600 focus:ring-emerald-500"
             />
             <span class="ml-2 text-sm text-gray-700">Active</span>
           </label>
           <label class="inline-flex items-center">
             <input
               type="radio"
-              [field]="menuForm.isActive"
+              [field]="form.isActive"
               value="false"
               class="h-4 w-4 border-gray-300 text-red-600 focus:ring-red-500"
             />
@@ -107,116 +157,116 @@
         </div>
       </div>
 
-      
-    <div class="flex gap-2">
-          <!-- Save -->
-          <input
-            type="submit"
-            [value]="selectedMenu() ? 'Update' : 'Save'"
-            [disabled]="isSubmitted()"
-            class="text-gray-50 bg-linear-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-teal-300 shadow-lg shadow-teal-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full"          
-          />
+      <div class="flex gap-2">
+        <!-- Save -->
+        <input
+          type="submit"
+          [value]="selectedMenu() ? 'Update' : 'Save'"
+          [disabled]="form().invalid()"
+          class="text-gray-50 bg-linear-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-emerald-300 shadow-lg shadow-emerald-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full"
+        />
 
-          <button
-            type="button"
-            (click)="formReset()"
-            class="text-gray-50 bg-linear-to-r from-red-400 via-red-500 to-red-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-red-300 shadow-lg shadow-red-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10"
-          >
-            Clear
-          </button>
-        </div>
+        <button
+          type="button"
+          (click)="formReset()"
+          class="text-gray-50 bg-linear-to-r from-red-400 via-red-500 to-red-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-red-300 shadow-lg shadow-red-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10"
+        >
+          Clear
+        </button>
+      </div>
     </form>
   </div>
   }
 
   <div class="w-full border mb-10 px-3 max-h-[98vh] overflow-scroll">
-    <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center">Menu List</h1>
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center">Menu List</h1>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
-      <div class="flex items-end gap-2 flex-col md:flex-row px-2">
-        <div class="w-full max-w-lg">
-          <label for="table-search" class="sr-only">Search</label>
-          <div class="relative mt-1">
-            <div
-              class="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none"
-            >
-                  <fa-icon [icon]="faMagnifyingGlass"></fa-icon>
-            </div>
-            <input
-              #searchInput
-              type="text"
-              id="table-search"
-              autocomplete="off"
-              class="block ps-10 text-xs text-gray-950 border border-gray-300 rounded bg-teal-100 focus:ring-teal-500 focus:border-teal-500 w-full"
-              placeholder="Search"
-              (input)="onSearchMenu($event)"
-            />
+    <div
+      class="relative overflow-x-auto bg-neutral-primary-soft shadow-xs rounded-base border border-default"
+    >
+      <div class="p-4">
+        <label for="search" class="sr-only">Search</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+            <fa-icon [icon]="faMagnifyingGlass"></fa-icon>
           </div>
+          <input
+            #searchInput
+            autocomplete="off"
+            (input)="onSearch($event)"
+            type="text"
+            id="search"
+            class="block w-full max-w-xl ps-9 pe-3 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body"
+            placeholder="Search"
+          />
         </div>
       </div>
 
+      <!-- Loading State -->
       @if (isLoading()) {
-      <p class="text-3xl font-bold text-center p-10 text-teal-600">Loading ...</p>
-      } @else if (hasError()) {
+      <p class="text-3xl font-bold text-center p-10 text-emerald-600">Loading ...</p>
+      }
+
+      <!-- Error State -->
+      @else if (hasError()) {
       <p class="text-3xl font-bold text-center p-10 text-red-600">
         There was an error loading data.
       </p>
-      } @else if (menus().length === 0) {
-      <p class="text-3xl font-bold text-center p-10 text-orange-600">Data is Empty.</p>
-      } @else {
-      <table class="w-full text-sm text-left rtl:text-right text-gray-950 mt-2">
-        <thead class="text-sm text-gray-50 uppercase bg-gray-800">
+      }
+
+      <!-- Empty State -->
+      @else if (filteredMenuList().length === 0) {
+      <p class="text-3xl font-bold text-center p-10 text-orange-600">No carousels found.</p>
+      }
+
+      <!-- Table -->
+      @else {
+      <table class="w-full text-sm text-left rtl:text-right text-body">
+        <thead
+          class="text-sm text-body bg-neutral-secondary-medium border-b border-t border-default-medium"
+        >
           <tr>
-            <th scope="col" class="p-1">menu</th>
-            <th scope="col" class="p-1">parent Menu</th>
-            <th scope="col" class="p-1">url</th>
-            <th scope="col" class="p-1">icon</th>
-            <th scope="col" class="p-1">isActive</th>
-            <th scope="col" class="p-1">permissions</th>
-            @if (isEdit() || isDelete()) { <th scope="col" class="px-1">Actions</th> }
+            <th scope="col" class="px-6 py-3 font-medium">Name</th>
+            <th scope="col" class="px-6 py-3 font-medium">Parent Name</th>
+            <th scope="col" class="px-6 py-3 font-medium">URL</th>
+            <th scope="col" class="px-6 py-3 font-medium">Icon</th>
+            <th scope="col" class="px-6 py-3 font-medium">Permissions</th>
+            <th scope="col" class="px-6 py-3 font-medium">Status</th>
+            @if (isEdit() || isDelete()) {
+            <th scope="col" class="px-6 py-3 font-medium">Action</th>
+            }
           </tr>
         </thead>
         <tbody>
-          @for (item of menus(); track item?.id || $index) {
+          @for (item of filteredMenuList(); track item?.id || $index) {
           <tr
-            id="row-{{ $index }}"
-            class="bg-teal-50 border-b hover:bg-teal-600 hover:text-gray-50 cursor-pointer"
+            class="bg-neutral-primary-soft border-b border-default hover:bg-neutral-secondary-medium"
           >
-            <td scope="row" class="p-1">
+            <th scope="row" class="px-6 py-4 font-medium text-heading whitespace-nowrap">
               {{ item?.menuName }}
+            </th>
+            <td class="px-6 py-4">{{ getParentMenuName(item?.parentMenuId) }}</td>
+            <td class="px-6 py-4">{{ item?.url }}</td>
+            <td class="px-6 py-4">{{ item?.icon }}</td>
+            <td class="px-6 py-4">{{ item?.permissionsKey }}</td>
+            <td class="px-6 py-4">{{ item?.isActive }}</td>
+            <td class="px-6 py-4">
+              @if (isEdit()) {
+              <button
+                class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-1 py-0.5 rounded cursor-pointer mr-1"
+                (click)="onUpdate(item)"
+              >
+                <fa-icon [icon]="faPencil"></fa-icon>
+              </button>
+              } @if (isDelete()) {
+              <button
+                class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-1 py-0.5 rounded cursor-pointer"
+                (click)="onDelete(item?.id)"
+              >
+                <fa-icon [icon]="faXmark"></fa-icon>
+              </button>
+              }
             </td>
-            <td class="p-1">
-              {{ getParentMenuName(item?.parentMenuId) }}
-            </td>
-            <td class="p-1">
-              {{ item?.url }}
-            </td>
-            <td class="p-1">
-              {{ item?.icon }}
-            </td>
-            <td class="p-1">
-              {{ item?.isActive }}
-            </td>
-            <td class="p-1">
-              {{ item?.permissionsKey }}
-            </td>
-              <td class="flex gap-1 p-0.5">
-                @if (isEdit()) {
-                <button
-                  class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-1 py-0.5 rounded cursor-pointer"
-                  (click)="onUpdate(item)"
-                >
-                  <fa-icon [icon]="faPencil"></fa-icon>
-                </button>
-                } @if (isDelete()) {
-                <button
-                  class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-1 py-0.5 rounded cursor-pointer"
-                  (click)="onDelete(item?.id)"
-                >
-                  <fa-icon [icon]="faXmark"></fa-icon>
-                </button>
-                }
-              </td>
           </tr>
           }
         </tbody>

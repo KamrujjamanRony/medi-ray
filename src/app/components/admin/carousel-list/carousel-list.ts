@@ -1,17 +1,16 @@
 import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { SearchComponent } from '../../shared/search/search.component';
-import { PermissionService } from '../../../services/auth/permission.service';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { CarouselM } from '../../../utils/models';
 import { CarouselS } from '../../../services/carousel-s';
 import { environment } from '../../../../environments/environment';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { Field, form, required, validate, debounce } from '@angular/forms/signals';
+import { PermissionS } from '../../../services/auth/permission-s';
 
 @Component({
   selector: 'app-carousel-list',
-  imports: [CommonModule, SearchComponent, FontAwesomeModule, Field],
+  imports: [CommonModule, FontAwesomeModule, Field, NgOptimizedImage],
   templateUrl: './carousel-list.html',
   styleUrl: './carousel-list.css',
 })
@@ -21,9 +20,10 @@ export class CarouselList {
   faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
   private carouselService = inject(CarouselS);
-  private permissionService = inject(PermissionService);
+  private permissionService = inject(PermissionS);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   imgURL = environment.ImageApi;
+  emptyImg = environment.emptyImg;
 
   /* ---------------- SIGNAL STATE ---------------- */
   carousels = signal<CarouselM[]>([]);
@@ -46,7 +46,10 @@ export class CarouselList {
   previewUrl = signal<string | null>(null);
 
   isLoading = signal(false);
-  hasError = signal(false);
+  error = signal({
+    message: '',
+    type: 'form'
+  });
 
   isView = signal(false);
   isInsert = signal(false);
@@ -54,10 +57,10 @@ export class CarouselList {
   isDelete = signal(false);
 
   highlightedTr = signal<number>(-1);
-  isSubmitted = signal(false);
+  isSubmitting = signal(false);
 
   /* ---------------- FORM MODEL ---------------- */
-  carouselModel = signal({
+  model = signal({
     title: '',
     description: '',
     companyID: environment.companyCode,
@@ -66,7 +69,7 @@ export class CarouselList {
   });
 
   /* ---------------- SIGNAL FORM ---------------- */
-  carouselForm = form(this.carouselModel, (schemaPath) => {
+  form = form(this.model, (schemaPath) => {
     required(schemaPath.title, { message: 'Title is required' });
 
     // Debounce form updates for better performance
@@ -81,22 +84,16 @@ export class CarouselList {
 
   /* ---------------- LOADERS ---------------- */
   loadPermissions() {
-    this.isView.set(this.permissionService.hasPermission('Product'));
-    this.isInsert.set(this.permissionService.hasPermission('Product', 'create'));
-    this.isEdit.set(this.permissionService.hasPermission('Product', 'edit'));
-    this.isDelete.set(this.permissionService.hasPermission('Product', 'delete'));
-    // this.isView.set(this.permissionService.hasPermission('Carousel'));                 // Todo: remove this part after debug
-    // this.isInsert.set(this.permissionService.hasPermission('Carousel', 'create'));
-    // this.isEdit.set(this.permissionService.hasPermission('Carousel', 'edit'));
-    // this.isDelete.set(this.permissionService.hasPermission('Carousel', 'delete'));
+    this.isView.set(this.permissionService.hasPermission('Carousel', 'view'));
+    this.isInsert.set(this.permissionService.hasPermission('Carousel', 'create'));
+    this.isEdit.set(this.permissionService.hasPermission('Carousel', 'edit'));
+    this.isDelete.set(this.permissionService.hasPermission('Carousel', 'delete'));
   }
 
-  loadCarousels() {
+  loadCarousels(title = "", description = "", companyID = environment.companyCode) {
     this.isLoading.set(true);
-    this.hasError.set(false);
-    const searchParams = {
-      "companyID": environment.companyCode
-    }
+    this.error.set({message: '', type: 'load'});
+    const searchParams = {companyID, title, description}
 
     this.carouselService.getAllCarousel(searchParams).subscribe({
       next: (data) => {
@@ -104,15 +101,15 @@ export class CarouselList {
         this.isLoading.set(false);
       },
       error: () => {
-        this.hasError.set(true);
+        this.error.set({message: 'Failed to load carousels.', type: 'load'});
         this.isLoading.set(false);
       }
     });
   }
 
   /* ---------------- SEARCH ---------------- */
-  onSearchCarousel(event: Event) {
-    this.searchQuery.set((event.target as HTMLInputElement).value);
+  onSearch(event: Event) {
+    this.searchQuery.set((event.target as HTMLInputElement).value.trim());
   }
 
   /* ---------------- Image File Handler ---------------- */
@@ -138,21 +135,19 @@ export class CarouselList {
     });
   }
 
-
-
-
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
 
-    if (!this.carouselForm().valid()) {
+    if (!this.form().valid()) {
       alert('Form is Invalid!');
       return;
     }
 
-    this.isSubmitted.set(true);
+    this.isSubmitting.set(true);
+    this.error.set({message: '', type: 'form'});
 
-    const formValue = this.carouselForm().value();
+    const formValue = this.form().value();
     const formData = new FormData();
 
     formData.append('CompanyID', String(formValue.companyID));
@@ -172,10 +167,11 @@ export class CarouselList {
       next: () => {
         this.loadCarousels();
         this.formReset();
-        this.isSubmitted.set(false);
+        this.isSubmitting.set(false);
       },
-      error: () => {
-        this.isSubmitted.set(false);
+      error: (error) => {
+        this.isSubmitting.set(false);
+        this.error.set({message: error?.message || error?.error?.message || 'An error occurred during submission.', type: 'form'});
       }
     });
   }
@@ -185,14 +181,14 @@ export class CarouselList {
   onUpdate(carousel: CarouselM) {
     this.selectedCarousel.set(carousel);
 
-    this.carouselModel.update(current => ({
+    this.model.update(current => ({
       ...current,
       title: carousel.title,
       description: carousel.description ?? '',
       companyID: carousel.companyID,
     }));
 
-    this.carouselForm().reset();
+    this.form().reset();
 
     this.previewUrl.set(
       carousel.imageUrl
@@ -221,20 +217,20 @@ export class CarouselList {
 
   /* ---------------- RESET ---------------- */
   formReset() {
-    this.carouselModel.set({
+    this.model.set({
       title: '',
       description: '',
       companyID: environment.companyCode,
       imageFile: '',
       imageUrl: '',
-    });
+    });   
 
     this.selectedCarousel.set(null);
     this.selectedFile.set(null);
     this.previewUrl.set(null);
-    this.isSubmitted.set(false);
+    this.isSubmitting.set(false);
 
-    this.carouselForm().reset();
+    this.form().reset();
     this.clearFileInput();
 
     // ✅ SAFE way to reset file input
@@ -243,6 +239,8 @@ export class CarouselList {
     }
   }
 
-
-
+  closeError(e: Event) {
+    e.preventDefault();
+    this.error.set({message: '', type: 'form'});
+  }
 }

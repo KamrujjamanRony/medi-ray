@@ -10,6 +10,64 @@
           </div>
 
           <div class="lg:col-span-2">
+            <h3 class="text-xl md:text-2xl font-semibold text-slate-900">{{product()?.title}}</h3>
+
+            <!-- @if(product()?.brand){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Brand: <span class="text-slate-800 font-bold">{{product()?.brand}}</span></p>}
+            @if(product()?.model){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Model: <span class="text-slate-800 font-bold">{{product()?.model}}</span></p>}
+            @if(product()?.origin){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Origin: <span class="text-slate-800 font-bold">{{product()?.origin}}</span></p>}
+            @if(product()?.productCategory){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Category: <span class="text-slate-800 font-bold">{{product()?.productCategory}}</span></p>}
+            @if(product()?.specialFeature){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Special Feature: <span class="text-slate-800 font-bold block">{{product()?.specialFeature}}</span></p>} -->
+
+            
+      <!-- Download Catalog Link -->
+      <!-- @if (product()?.catalogUrl) {
+        <h2 class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Product Catalog: </h2>
+        <div class="flex gap-4 max-w-md justify-end">
+          <a 
+            [href]="'https://drive.google.com/uc?export=download&id=' + product()?.catalogUrl"
+            target="_blank"
+            download
+            rel="noopener noreferrer" 
+            class="px-4 py-2.5 cursor-pointer outline-none border border-blue-600 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-sm">Download Product Catalog</a>
+        </div>
+      } -->
+          </div>
+        </div>
+
+        <div class="mt-12 shadow-[0_2px_10px_-3px_rgba(169,170,172,0.8)] p-6">
+          <h3 class="text-xl font-semibold text-slate-900">Product information</h3>
+          @if (product()?.description) {
+            <div class="mt-8 space-y-6 text-slate-800">
+            <h4 class="text-sm md:text-lg mt-2 mb-0 md:mt-4 font-semibold">Product Description:</h4>
+            <p class="text-sm md:text-base leading-7 text-slate-500">
+              {{product()?.description}}
+            </p>
+          </div>
+          }          
+          <!-- @if (product()?.aditionalInformation) {
+            <div class="mt-8 space-y-6 text-slate-800">
+            <h4 class="text-sm md:text-lg mt-2 mb-0 md:mt-4 font-semibold">Additional Information:</h4>
+            <p class="text-sm md:text-base leading-7 text-slate-500">
+              {{product()?.aditionalInformation}}
+            </p>
+          </div>
+          }           -->
+        </div>
+      </div>
+</div>
+}
+<!-- @if (product()) {
+  <div class="bg-white">
+      <div class="p-4 lg:max-w-7xl max-w-4xl mx-auto">
+        <div class="grid items-start grid-cols-1 lg:grid-cols-5 gap-12 shadow-[0_2px_10px_-3px_rgba(169,170,172,0.8)] p-6 rounded-sm">
+          <div class="lg:col-span-3 w-full lg:sticky top-0 text-center">
+
+            <div class="px-4 py-10 rounded-sm shadow-md relative h-full">
+              <img [src]="ImageApi + product()?.imageUrl" alt="Product" class="w-4/5 h-full rounded-sm object-cover mx-auto" />
+            </div>
+          </div>
+
+          <div class="lg:col-span-2">
             <h3 class="text-xl md:text-2xl font-semibold text-slate-900">{{product()?.productName}}</h3>
 
             @if(product()?.brand){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Brand: <span class="text-slate-800 font-bold">{{product()?.brand}}</span></p>}
@@ -18,8 +76,7 @@
             @if(product()?.productCategory){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Category: <span class="text-slate-800 font-bold">{{product()?.productCategory}}</span></p>}
             @if(product()?.specialFeature){<p class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Special Feature: <span class="text-slate-800 font-bold block">{{product()?.specialFeature}}</span></p>}
 
-            
-      <!-- Download Catalog Link -->
+           
       @if (product()?.catalogUrl) {
         <h2 class="text-sm md:text-lg text-slate-500 mt-2 md:mt-4">Product Catalog: </h2>
         <div class="flex gap-4 max-w-md justify-end">
@@ -55,4 +112,4 @@
         </div>
       </div>
 </div>
-}
+} -->

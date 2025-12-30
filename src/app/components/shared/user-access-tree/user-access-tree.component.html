@@ -9,7 +9,7 @@
           class="text-gray-950 hover:text-gray-950 focus:outline-none"
           (click)="toggleCollapse(node)"
         >
-          {{ node.collapsed ? "▶" : "▼" }}
+          {{ node.collapsed ? '▶' : '▼' }}
         </button>
         } @else {
         <p class="w-5"></p>
@@ -18,7 +18,7 @@
         <!-- Checkbox for Menu -->
         <input
           type="checkbox"
-          class="form-checkbox h-5 w-5 text-teal-500 focus:ring-teal-500"
+          class="form-checkbox h-5 w-5 text-emerald-500 focus:ring-emerald-500"
           [(ngModel)]="node.isSelected"
           (change)="onCheck(node, $event)"
         />
@@ -34,7 +34,7 @@
         <label class="flex items-center space-x-2 text-sm">
           <input
             type="checkbox"
-            class="form-checkbox h-4 w-4 text-teal-500 focus:ring-teal-500"
+            class="form-checkbox h-4 w-4 text-emerald-500 focus:ring-emerald-500"
             [(ngModel)]="permission.isSelected"
             (change)="onPermissionCheck(node)"
           />
@@ -46,9 +46,7 @@
 
       <!-- Children List (Collapsible) -->
       @if (!node.collapsed && node.children?.length) {
-      <app-user-access-tree
-        [nodes]="node.children || []"
-      ></app-user-access-tree>
+      <app-user-access-tree [nodes]="node.children || []"></app-user-access-tree>
       }
     </li>
     }
@@ -56,16 +54,10 @@
 
   @if(nodes()[0]?.id == 1){
   <div class="flex space-x-2 my-2">
-    <button
-      class="px-3 py-1 bg-teal-500 text-gray-50 rounded"
-      (click)="selectAll()"
-    >
+    <button class="px-3 py-1 bg-emerald-500 text-gray-50 rounded" (click)="selectAll()">
       Select All
     </button>
-    <button
-      class="px-3 py-1 bg-red-500 text-gray-50 rounded"
-      (click)="deselectAll()"
-    >
+    <button class="px-3 py-1 bg-red-500 text-gray-50 rounded" (click)="deselectAll()">
       Deselect All
     </button>
   </div>

@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { Admin } from './layouts/admin/admin';
-import { authGuard } from './services/auth/auth.guard';
-import { LoginComponent } from './components/admin/login/login.component';
+import { Page } from './components/shared/page/page';
+import { Login } from './components/admin/login/login';
+import { authGuard } from './services/auth/auth-guard';
 
 export const routes: Routes = [
   {
@@ -29,18 +30,28 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./components/about/about').then(m => m.AboutComponent),
       },
+      {
+        path: 'test',
+        component: Page,
+      },
     ],
   },
   {
     path: 'admin',
     component: Admin,
-    canActivate: [authGuard], 
+    canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'carousel', pathMatch: 'full' },
       {
         path: 'carousel',
         loadComponent: () =>
           import('./components/admin/carousel-list/carousel-list').then(m => m.CarouselList),
+        data: { preload: true },
+      },
+      {
+        path: 'product',
+        loadComponent: () =>
+          import('./components/admin/product-list/product-list').then(m => m.ProductList),
         data: { preload: true },
       },
       {
@@ -59,6 +70,6 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    component: LoginComponent
+    component: Login
   }
 ];

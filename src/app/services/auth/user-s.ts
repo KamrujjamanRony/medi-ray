@@ -2,14 +2,14 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { from, lastValueFrom, map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SimpleCacheService } from '../simple-cache.service';
+import { CacheS } from '../cache-s';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserS {
   private readonly http = inject(HttpClient);
-  private readonly cache = inject(SimpleCacheService);
+  private readonly cache = inject(CacheS);
 
   private readonly url = `${environment.apiUrl}/User`;
 

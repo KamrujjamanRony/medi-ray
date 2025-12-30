@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { FlowbiteService } from '../../../services/flowbite.service';
 import { RouterLink } from "@angular/router";
+import { FlowbiteS } from '../../../services/flowbite';
 
 @Component({
   selector: 'app-navbar',
@@ -9,7 +9,7 @@ import { RouterLink } from "@angular/router";
   styleUrl: './navbar.css',
 })
 export class Navbar {
-  flowbiteService = inject(FlowbiteService);
+  flowbiteService = inject(FlowbiteS);
 
   ngOnInit(): void {
     this.flowbiteService.loadFlowbite((flowbite) => {

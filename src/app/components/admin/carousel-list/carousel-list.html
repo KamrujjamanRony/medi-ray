@@ -2,7 +2,7 @@
 <section class="flex flex-col lg:flex-row gap-5">
   @if (isInsert()) {
   <div class="w-full md:max-w-xl border mb-10">
-    <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center mb-5">
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center mb-5">
       Carousel Form
     </h1>
     <form
@@ -11,25 +11,36 @@
       enctype="multipart/form-data"
     >
       <!-- Title -->
-      <div class="relative pb-2">
-        <input
-          type="text"
-          [field]="carouselForm.title"
-          id="title"
-          class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
-          placeholder=" "
-        />
-        <label
-          for="title"
-          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1"
-          >Carousel Title</label
-        >
+      <div>
+        @let title = form.title(); @let titleError = form.title().invalid() &&
+        form.title().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.title"
+            id="title"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="title"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
+            >Carousel title</label
+          >
+        </div>
+        @if (titleError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of title.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
       </div>
       <!-- description -->
       <div class="relative pb-2">
         <textarea
           id="description"
-          [field]="carouselForm.description"
+          [field]="form.description"
           rows="4"
           class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
           placeholder=""
@@ -54,14 +65,58 @@
         />
       </div>
 
+      <!-- Error Message -->
+      @if (error().message && error().type === 'form') {
+      <div
+        class="mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md flex items-center justify-between relative"
+      >
+        <div class="text-red-600 dark:text-red-400 text-sm text-center">
+          {{ error().message }}
+        </div>
+        <button
+          (click)="closeError($event)"
+          class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-600 cursor-pointer"
+        >
+          <fa-icon [icon]="faXmark" class="w-5 h-5"></fa-icon>
+        </button>
+      </div>
+      }
+
       <div class="flex gap-2">
         <!-- Save -->
-        <input
+        <button
           type="submit"
-          [value]="selectedCarousel() ? 'Update' : 'Save'"
-          [disabled]="isSubmitted()"
-          class="text-gray-50 bg-linear-to-r from-teal-400 via-teal-500 to-teal-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-teal-300 shadow-lg shadow-teal-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full"
-        />
+          [disabled]="isSubmitting()"
+          class="text-gray-50 bg-linear-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-emerald-300 shadow-lg shadow-emerald-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer"
+        >
+          @if (isSubmitting()) {
+          <span class="flex items-center justify-center">
+            <svg
+              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            Submitting Form...
+          </span>
+          } @else {
+          <span>{{ selectedCarousel() ? 'Update' : 'Save' }}</span>
+          }
+        </button>
 
         <button
           type="button"
@@ -77,37 +132,38 @@
 
   <!-- Carousel List Table -->
   <div class="w-full border mb-10 px-3 max-h-[98vh] overflow-scroll">
-    <h1 class="text-xl md:text-3xl font-bold text-teal-500 underline text-center">Carousel List</h1>
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center">
+      Carousel List
+    </h1>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-2">
-      <div class="flex items-end gap-2 flex-col md:flex-row px-2">
-        <div class="w-full max-w-lg">
-          <label for="table-search" class="sr-only">Search</label>
-          <div class="relative mt-1">
-            <div
-              class="absolute inset-y-0 rtl:inset-r-0 start-0 flex items-center ps-3 pointer-events-none"
-            >
-              <app-search></app-search>
-            </div>
-            <input
-              #searchInput
-              type="text"
-              id="table-search"
-              autocomplete="off"
-              class="block ps-10 text-xs text-gray-950 border border-gray-300 rounded bg-teal-100 focus:ring-teal-500 focus:border-teal-500 w-full"
-              (input)="onSearchCarousel($event)"
-            />
+    <div
+      class="relative overflow-x-auto bg-neutral-primary-soft shadow-xs rounded-base border border-default"
+    >
+      <div class="p-4">
+        <label for="search" class="sr-only">Search</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+            <fa-icon [icon]="faMagnifyingGlass"></fa-icon>
           </div>
+          <input
+            #searchInput
+            autocomplete="off"
+            (input)="onSearch($event)"
+            type="text"
+            id="search"
+            class="block w-full max-w-xl ps-9 pe-3 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body"
+            placeholder="Search"
+          />
         </div>
       </div>
 
       <!-- Loading State -->
       @if (isLoading()) {
-      <p class="text-3xl font-bold text-center p-10 text-teal-600">Loading ...</p>
+      <p class="text-3xl font-bold text-center p-10 text-emerald-600">Loading ...</p>
       }
 
       <!-- Error State -->
-      @else if (hasError()) {
+      @else if (error().message && error().type === 'load') {
       <p class="text-3xl font-bold text-center p-10 text-red-600">
         There was an error loading data.
       </p>
@@ -120,53 +176,41 @@
 
       <!-- Table -->
       @else {
-      <table class="w-full text-sm text-left rtl:text-right text-gray-950 mt-2">
-        <thead class="text-sm text-gray-50 uppercase bg-gray-800">
+      <table class="w-full text-sm text-left rtl:text-right text-body">
+        <thead
+          class="text-sm text-body bg-neutral-secondary-medium border-b border-t border-default-medium"
+        >
           <tr>
-            <th scope="col" class="p-2">Image</th>
-            <th scope="col" class="p-2">Title</th>
-            <th scope="col" class="p-2">Description</th>
+            <th scope="col" class="px-6 py-3 font-medium">Image</th>
+            <th scope="col" class="px-6 py-3 font-medium">Title</th>
+            <th scope="col" class="px-6 py-3 font-medium">Description</th>
             @if (isEdit() || isDelete()) {
-            <th scope="col" class="px-1">Actions</th>
+            <th scope="col" class="px-6 py-3 font-medium">Action</th>
             }
           </tr>
         </thead>
         <tbody>
           @for (item of filteredCarouselList(); track item?.id || $index) {
           <tr
-            id="row-{{ $index }}"
-            class="bg-teal-50 border-b hover:bg-teal-600 hover:text-gray-50 cursor-pointer"
-            [class.bg-teal-200]="highlightedTr() === $index"
+            class="bg-neutral-primary-soft border-b border-default hover:bg-neutral-secondary-medium"
           >
-            <!-- Image -->
-            <td class="p-2">
-              @if (item.imageUrl) {
-              <img
-                [src]="imgURL + item.imageUrl"
+            <th scope="row" class="px-6 py-4 font-medium text-heading whitespace-nowrap">
+              <div class="relative w-16 h-16">
+                <img
+                [ngSrc]="imgURL + item.imageUrl"
+                fill
                 alt="Carousel Image"
-                class="w-16 h-16 object-cover rounded"
+                class="object-cover rounded"
+                [priority]="$index < 3"
               />
-              } @else {
-              <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
-                <span class="text-gray-500 text-xs">No Image</span>
-              </div>
-              }
-            </td>
-
-            <!-- Title -->
-            <td scope="row" class="p-2 font-medium">
-              {{ item?.title }}
-            </td>
-
-            <!-- Description -->
-            <td class="p-2 max-w-xs truncate">
-              {{ item?.description || '-' }}
-            </td>
-
-            <td class="flex gap-1 p-0.5">
+              </div>              
+            </th>
+            <td class="px-6 py-4">{{ item?.title }}</td>
+            <td class="px-6 py-4">{{ item?.description || '-' }}</td>
+            <td class="px-6 py-4">
               @if (isEdit()) {
               <button
-                class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-1 py-0.5 rounded cursor-pointer"
+                class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-1 py-0.5 rounded cursor-pointer mr-1"
                 (click)="onUpdate(item)"
               >
                 <fa-icon [icon]="faPencil"></fa-icon>

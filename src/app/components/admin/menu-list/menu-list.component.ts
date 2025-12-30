@@ -1,27 +1,17 @@
 import { Component, ElementRef, inject, signal, computed, viewChild, viewChildren, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { Field, form, required, validate, debounce } from '@angular/forms/signals';
-import { PermissionService } from '../../../services/auth/permission.service';
 import { MenuS } from '../../../services/auth/menu-s';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
-
-interface Menu {
-  id: number;
-  menuName: string;
-  parentMenuId?: any;
-  url?: string;
-  isActive: boolean;
-  icon?: string;
-  permissionsKey: string[];
-  postBy: string;
-}
+import { MultiSelect } from '../../shared/multi-select/multi-select';
+import { MenuM } from '../../../utils/models';
+import { PermissionS } from '../../../services/auth/permission-s';
 
 @Component({
   selector: 'app-menu-list',
   standalone: true,
-  imports: [CommonModule, FontAwesomeModule, Field, FormsModule],
+  imports: [FontAwesomeModule, Field, FormsModule, MultiSelect],
   templateUrl: './menu-list.component.html',
   styleUrl: './menu-list.component.css'
 })
@@ -31,12 +21,24 @@ export class MenuListComponent implements OnInit {
   faMagnifyingGlass = faMagnifyingGlass;
   /* ---------------- DI ---------------- */
   private menuService = inject(MenuS);
-  private permissionService = inject(PermissionService);
+  private permissionService = inject(PermissionS);
 
   /* ---------------- SIGNAL STATE ---------------- */
-  menus = signal<Menu[]>([]);
+  menus = signal<MenuM[]>([]);
   searchQuery = signal('');
   permissionsKey: any;
+
+  filteredMenuList = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+
+    return this.menus()
+      .filter(menu =>
+        menu.menuName?.toLowerCase().includes(query) ||
+        menu.url?.toLowerCase().includes(query) ||
+        menu.icon?.toLowerCase().includes(query)
+      )
+      .reverse();
+  });
 
   menuOptions = computed(() =>
     this.menus().map(menu => ({
@@ -45,7 +47,7 @@ export class MenuListComponent implements OnInit {
     }))
   );
 
-  selectedMenu = signal<Menu | null>(null);
+  selectedMenu = signal<MenuM | null>(null);
 
   isLoading = signal(false);
   hasError = signal(false);
@@ -55,35 +57,34 @@ export class MenuListComponent implements OnInit {
   isEdit = signal(false);
   isDelete = signal(false);
 
-  highlightedTr = signal<number>(-1);
-  isSubmitted = signal(false);
+  permissionOptions = signal<string[]>(['view', 'create', 'edit', 'delete']);
 
-  options = [
-    { key: 'view', value: 'View' },
-    { key: 'create', value: 'Insert' },
-    { key: 'edit', value: 'Edit' },
-    { key: 'delete', value: 'Delete' },
-  ];
+  // permissionOptions = [ 
+  //   { key: 'view', value: 'View' },
+  //   { key: 'create', value: 'Insert' },
+  //   { key: 'edit', value: 'Edit' },
+  //   { key: 'delete', value: 'Delete' },
+  // ];
 
   readonly inputRefs = viewChildren<ElementRef>('inputRef');
   readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
 
   /* ---------------- FORM MODEL ---------------- */
-  menuModel = signal({
+  model = signal({
     menuName: '',
     parentMenuId: '',
     url: '',
     isActive: 'true', // Use string 'true'/'false'
     icon: '',
-    permissionsKey: ["view"] as any,
+    permissionsKey: [] as string[],
     postBy: ''
   });
 
   /* ---------------- SIGNAL FORM ---------------- */
-  menuForm = form(this.menuModel, (schemaPath) => {
-    required(schemaPath.menuName, {message: 'Menu Name is required'});
-    required(schemaPath.url, {message: 'Menu URL is required'});
-    validate(schemaPath.url, ({value}) => {
+  form = form(this.model, (schemaPath) => {
+    required(schemaPath.menuName, { message: 'Menu Name is required' });
+    required(schemaPath.url, { message: 'Menu URL is required' });
+    validate(schemaPath.url, ({ value }) => {
       if (!value().startsWith('/')) {
         return {
           kind: 'https',
@@ -95,6 +96,7 @@ export class MenuListComponent implements OnInit {
 
     // Debounce form updates for better performance
     debounce(schemaPath.menuName, 300);
+    debounce(schemaPath.url, 300);
   });
 
   /* ---------------- LIFECYCLE ---------------- */
@@ -121,7 +123,7 @@ export class MenuListComponent implements OnInit {
 
     this.menuService.getAllMenu().subscribe({
       next: data => {
-        this.menus.set((data as Menu[]) ?? []);
+        this.menus.set((data as MenuM[]) ?? []);
         this.isLoading.set(false);
       },
       error: () => {
@@ -132,7 +134,7 @@ export class MenuListComponent implements OnInit {
   }
 
   /* ---------------- SEARCH ---------------- */
-  onSearchMenu(event: Event) {
+  onSearch(event: Event) {
     this.searchQuery.set((event.target as HTMLInputElement).value);
   }
 
@@ -144,11 +146,11 @@ export class MenuListComponent implements OnInit {
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
-    if (this.menuForm().valid()) {
-      this.isSubmitted.set(true);
+    console.log(this.form().value());
+    if (this.form().valid()) {
 
       // Create the payload with proper types
-      const formValue = this.menuForm().value();
+      const formValue = this.form().value();
 
       const payload = {
         menuName: formValue.menuName,
@@ -160,7 +162,7 @@ export class MenuListComponent implements OnInit {
         postBy: formValue.postBy
       };
 
-      console.log('Form values:', formValue);
+
       console.log('Payload to send:', payload);
 
       const request$ = this.selectedMenu()
@@ -171,11 +173,8 @@ export class MenuListComponent implements OnInit {
         next: () => {
           this.loadMenus();
           this.formReset();
-          this.isSubmitted.set(false);
         },
-        error: () => {          
-          this.isSubmitted.set(false);
-        }
+        error: () => { }
       });
     } else {
       alert("Form is Invalid!")
@@ -184,12 +183,12 @@ export class MenuListComponent implements OnInit {
   }
 
   /* ---------------- UPDATE ---------------- */
-  onUpdate(menu: Menu) {
+  onUpdate(menu: MenuM) {
     this.selectedMenu.set(menu);
     this.permissionsKey = menu.permissionsKey ?? []
 
     // Update the form model
-    this.menuModel.update(current => ({
+    this.model.update(current => ({
       ...current,
       menuName: menu.menuName,
       parentMenuId: menu.parentMenuId ?? '',
@@ -200,7 +199,7 @@ export class MenuListComponent implements OnInit {
     }));
 
     // Reset validation states
-    this.menuForm().reset();
+    this.form().reset();
   }
 
   /* ---------------- DELETE ---------------- */
@@ -215,7 +214,7 @@ export class MenuListComponent implements OnInit {
   /* ---------------- RESET ---------------- */
   formReset() {
     // Reset the model
-    this.menuModel.set({
+    this.model.set({
       menuName: '',
       parentMenuId: '',
       url: '',
@@ -226,8 +225,6 @@ export class MenuListComponent implements OnInit {
     });
     this.permissionsKey = [];
     this.selectedMenu.set(null);
-    this.isSubmitted.set(false);
-    // Reset the form state
-    this.menuForm().reset();
+    this.form().reset();
   }
 }
