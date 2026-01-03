@@ -1,7 +1,8 @@
-
-@if (slides().length > 0) {
-  <div ngSkipHydration>
+@if (slides() && slides().length > 0) {
+<div ngSkipHydration>
   <swiper-container
+    [loop]="canLoop() ? 'true' : 'false'"
+    slide-per-view="4"
     effect="fade"
     pagination="true"
     navigation="true"
@@ -9,17 +10,26 @@
     loop="true"
     speed="1500"
     interval="2000"
-    class="w-full h-full md:h-[90vh]"
+    class="w-full h-[50vh] md:h-[90vh]"
   >
-    @for (item of slides(); track item?.id) {
+    @for (item of slides(); track item?.id; let i = $index) {
     <swiper-slide>
       <div class="relative w-full h-full">
-        <img [src]="ImageApi + item?.imageUrl" class="w-full h-full object-cover" />
+        <img
+          [ngSrc]="item.imageUrl"
+          fill
+          [ngSrcset]="'640w, 1024w, 1920w'"
+          sizes="100vw"
+          [priority]="i === 0"
+          alt="Carousel Image"
+          class="w-full h-full object-cover"
+        />
+
         @if (item?.title) {
         <div
-          class="absolute bottom-10 left-10 px-4 py-2.5 bg-black/50 rounded text-white max-w-1/2"
+          class="absolute bottom-10 left-10 px-4 py-2.5 bg-black/50 rounded text-white max-w-[50%] z-10"
         >
-          <h2 class="text-sm md:text-xl">{{ item?.title }}</h2>
+          <h2 class="text-sm md:text-xl font-bold">{{ item?.title }}</h2>
           <p class="text-xs md:text-sm">{{ item?.description }}</p>
         </div>
         }
@@ -28,5 +38,8 @@
     }
   </swiper-container>
 </div>
+} @else {
+<div class="flex items-center justify-center h-[50vh]">
+  <fa-icon [icon]="faSpinner" [spin]="true" size="2x"></fa-icon>
+</div>
 }
-

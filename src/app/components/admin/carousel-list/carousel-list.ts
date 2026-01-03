@@ -1,5 +1,5 @@
 import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { CommonModule, IMAGE_LOADER, ImageLoaderConfig, NgOptimizedImage } from '@angular/common';
 import { CarouselM } from '../../../utils/models';
 import { CarouselS } from '../../../services/carousel-s';
 import { environment } from '../../../../environments/environment';
@@ -13,6 +13,16 @@ import { PermissionS } from '../../../services/auth/permission-s';
   imports: [CommonModule, FontAwesomeModule, Field, NgOptimizedImage],
   templateUrl: './carousel-list.html',
   styleUrl: './carousel-list.css',
+  providers: [
+    {
+      provide: IMAGE_LOADER,
+      useValue: (config: ImageLoaderConfig) => {
+        // config.src is the filename (e.g., 'image.jpg')
+        // config.width is the width Angular wants for a specific srcset
+        return `${environment.ImageApi + config.src}?w=${config.width}`;
+      },
+    },
+  ],
 })
 export class CarouselList {
   faPencil = faPencil;

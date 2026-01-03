@@ -197,13 +197,15 @@
             <th scope="row" class="px-6 py-4 font-medium text-heading whitespace-nowrap">
               <div class="relative w-16 h-16">
                 <img
-                [ngSrc]="imgURL + item.imageUrl"
-                fill
-                alt="Carousel Image"
-                class="object-cover rounded"
-                [priority]="$index < 3"
-              />
-              </div>              
+                  [ngSrc]="item.imageUrl"
+                  fill
+                  ngSrcset="64w, 128w, 256w"
+                  sizes="64px"
+                  alt="Carousel Image"
+                  class="object-cover rounded"
+                  [priority]="$index < 3"
+                />
+              </div>
             </th>
             <td class="px-6 py-4">{{ item?.title }}</td>
             <td class="px-6 py-4">{{ item?.description || '-' }}</td>
