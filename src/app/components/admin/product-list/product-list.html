@@ -7,23 +7,89 @@
     </h1>
     <form
       (submit)="onSubmit($event)"
-      class="min-w-[400px] mx-auto px-2"
+      class="min-w-100 mx-auto px-2"
       enctype="multipart/form-data"
     >
       <!-- Title -->
-      <div class="relative pb-2">
-        <input
-          type="text"
-          [field]="form.title"
-          id="title"
-          class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
-          placeholder=" "
-        />
-        <label
-          for="title"
-          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1"
-          >Product Title</label
-        >
+      <div>
+        @let title = form.title(); @let titleError = form.title().invalid() &&
+        form.title().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.title"
+            autocomplete="off"
+            id="title"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="title"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
+            >Product title</label
+          >
+        </div>
+        @if (titleError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of title.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
+      </div>
+      <!-- category -->
+      <div>
+        @let category = form.category(); @let categoryError = form.category().invalid() &&
+        form.category().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.category"
+            id="category"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="category"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
+            >Product category</label
+          >
+        </div>
+        @if (categoryError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of category.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
+      </div>
+      <!-- brand -->
+      <div>
+        @let brand = form.brand(); @let brandError = form.brand().invalid() &&
+        form.brand().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.brand"
+            id="brand"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="brand"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
+            >Product brand</label
+          >
+        </div>
+        @if (brandError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of brand.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
       </div>
       <!-- description -->
       <div class="relative pb-2">

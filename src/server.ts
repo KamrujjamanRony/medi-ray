@@ -16,41 +16,34 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 // Backend snippet
-// app.use(cors({
-//   origin: ['https://mediray.supersoftbd.com', 'http://localhost:4200'], // Allow your live site and local dev
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
-
 app.get('/uploads/:filename', async (req, res) => {
   const { filename } = req.params;
-  const queryW = req.query['w'];
-  const width = typeof queryW === 'string' ? parseInt(queryW, 10) : NaN;
+  const width = parseInt(req.query['w'] as string, 10);
   const filePath = path.join(process.cwd(), 'uploads', filename);
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send('File not found');
-  }
-
-  if (isNaN(width)) {
-    return res.sendFile(filePath);
-  }
+  if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
+  if (isNaN(width)) return res.sendFile(filePath);
 
   try {
-    // read the image using Jimp
     const image = await Jimp.read(filePath);
-    
-    // resize the image
+    const mimeType = image.mime || 'image/jpeg';
+
+    console.log(`Resizing ${filename} to width: ${width}`); // DEBUG LOG
+
+    // Perform the resize
     image.resize({ w: width }); 
 
-    // get the buffer of the resized image
-    const buffer = await image.getBuffer('image/jpeg');
+    const buffer = await image.getBuffer(mimeType as any);
 
-    res.set('Cache-Control', 'public, max-age=604800');
-    res.type('image/jpeg').send(buffer);
-
+    res.set({
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=604800',
+      'Vary': 'Accept' // Tells browser the content varies based on request
+    });
+    
+    res.send(buffer);
   } catch (err) {
-    console.error('Jimp Error:', err);
+    console.error('Processing failed:', err);
     res.sendFile(filePath);
   }
 });

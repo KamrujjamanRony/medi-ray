@@ -60,9 +60,14 @@ export class ProductList {
   model = signal({
     title: '',
     description: '',
+    category: '',
+    brand: '',
     companyID: environment.companyCode,
     imageFile: '',
+    imageFiles: '',
     imageUrl: '',
+    images: [],
+    relatedProducts: [],
   });
 
   /* ---------------- SIGNAL FORM ---------------- */
@@ -213,12 +218,17 @@ export class ProductList {
   /* ---------------- RESET ---------------- */
   formReset() {
     this.model.set({
-      title: '',
-      description: '',
-      companyID: environment.companyCode,
-      imageFile: '',
-      imageUrl: '',
-    });   
+    title: '',
+    description: '',
+    category: '',
+    brand: '',
+    companyID: environment.companyCode,
+    imageFile: '',
+    imageFiles: '',
+    imageUrl: '',
+    images: [],
+    relatedProducts: [],
+  });   
 
     this.selectedProduct.set(null);
     this.selectedFile.set(null);
