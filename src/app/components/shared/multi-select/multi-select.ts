@@ -1,6 +1,10 @@
 import { Component, forwardRef, Input } from '@angular/core';
 import { NG_VALUE_ACCESSOR, NG_VALIDATORS, FormControl, FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+
+interface Option {
+  key: string;
+  value: string;
+}
 
 @Component({
   selector: 'multi-select',
@@ -22,22 +26,17 @@ import { Subscription } from 'rxjs';
 })
 export class MultiSelect {
   @Input() placeholder: string = 'Select options';
-  @Input() options: string[] = [];
+  @Input() options: Option[] = []; // Change to Option array
 
-  selectedOptions: string[] = [];
+  selectedOptions: Option[] = []; // Change to Option array
   isDropdownOpen = false;
-  filteredOptions: string[] = [];
+  filteredOptions: Option[] = [];
 
   private onChange: (value: any) => void = () => { };
   private onTouched: () => void = () => { };
-  private subscription: Subscription = new Subscription();
 
   ngOnInit() {
     this.filterOptions();
-  }
-
-  ngOnDestroy() {
-    this.subscription.unsubscribe();
   }
 
   toggleDropdown(e: Event) {
@@ -49,15 +48,15 @@ export class MultiSelect {
     }
   }
 
-  filterOptions(shouldEmit: boolean = true) {
+  filterOptions() {
     // Show only options that haven't been selected
     this.filteredOptions = this.options.filter(option =>
-      !this.selectedOptions.includes(option)
+      !this.selectedOptions.some(selected => selected.key === option.key)
     );
   }
 
-  selectOption(option: string) {
-    if (!this.selectedOptions.includes(option)) {
+  selectOption(option: Option) {
+    if (!this.selectedOptions.some(selected => selected.key === option.key)) {
       this.selectedOptions.push(option);
       this.onChange(this.selectedOptions);
       this.onTouched();
@@ -65,8 +64,8 @@ export class MultiSelect {
     }
   }
 
-  removeOption(option: string) {
-    const index = this.selectedOptions.indexOf(option);
+  removeOption(option: Option) {
+    const index = this.selectedOptions.findIndex(selected => selected.key === option.key);
     if (index > -1) {
       this.selectedOptions.splice(index, 1);
       this.onChange(this.selectedOptions);
@@ -76,17 +75,22 @@ export class MultiSelect {
   }
 
   // ControlValueAccessor implementation
-  writeValue(value: string[]): void {
-    if (value) {
-      this.selectedOptions = [...value];
+  writeValue(value: Option[] | string[]): void {
+    if (value && value.length > 0) {
+      // Handle both cases: array of objects or array of strings
+      if (typeof value[0] === 'string') {
+        // If value is string[], map to Option[]
+        this.selectedOptions = this.options.filter(option => 
+          (value as string[]).includes(option.key)
+        );
+      } else {
+        // If value is already Option[]
+        this.selectedOptions = [...value as Option[]];
+      }
     } else {
       this.selectedOptions = [];
     }
-    // DON'T emit valueChanged here - it causes infinite loop
-    // Just filter options without emitting
-    this.filteredOptions = this.options.filter(option =>
-      !this.selectedOptions.includes(option)
-    );
+    this.filterOptions();
   }
 
   registerOnChange(fn: any): void {
@@ -101,9 +105,7 @@ export class MultiSelect {
     // Implement if needed
   }
 
-  // Validator implementation
   validate(control: FormControl) {
-    return null; // No validation in component, handled by form
+    return null;
   }
-
 }

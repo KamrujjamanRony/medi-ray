@@ -8,6 +8,12 @@ import { MultiSelect } from '../../shared/multi-select/multi-select';
 import { MenuM } from '../../../utils/models';
 import { PermissionS } from '../../../services/auth/permission-s';
 
+// Define interface for multi-select options
+interface PermissionOption {
+  key: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-menu-list',
   standalone: true,
@@ -19,6 +25,7 @@ export class MenuListComponent implements OnInit {
   faPencil = faPencil;
   faXmark = faXmark;
   faMagnifyingGlass = faMagnifyingGlass;
+  
   /* ---------------- DI ---------------- */
   private menuService = inject(MenuS);
   private permissionService = inject(PermissionS);
@@ -26,7 +33,7 @@ export class MenuListComponent implements OnInit {
   /* ---------------- SIGNAL STATE ---------------- */
   menus = signal<MenuM[]>([]);
   searchQuery = signal('');
-  permissionsKey: any;
+  permissionsKey: PermissionOption[] = []; // Change to PermissionOption array
 
   filteredMenuList = computed(() => {
     const query = this.searchQuery().toLowerCase();
@@ -57,14 +64,13 @@ export class MenuListComponent implements OnInit {
   isEdit = signal(false);
   isDelete = signal(false);
 
-  permissionOptions = signal<string[]>(['view', 'create', 'edit', 'delete']);
-
-  // permissionOptions = [ 
-  //   { key: 'view', value: 'View' },
-  //   { key: 'create', value: 'Insert' },
-  //   { key: 'edit', value: 'Edit' },
-  //   { key: 'delete', value: 'Delete' },
-  // ];
+  // Define permission options as array of objects
+  permissionOptions: PermissionOption[] = [ 
+    { key: 'view', value: 'View' },
+    { key: 'create', value: 'Create' },
+    { key: 'edit', value: 'Edit' },
+    { key: 'delete', value: 'Delete' },
+  ];
 
   readonly inputRefs = viewChildren<ElementRef>('inputRef');
   readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
@@ -74,9 +80,9 @@ export class MenuListComponent implements OnInit {
     menuName: '',
     parentMenuId: '',
     url: '',
-    isActive: 'true', // Use string 'true'/'false'
+    isActive: 'true',
     icon: '',
-    permissionsKey: [] as string[],
+    permissionsKey: [] as string[], // Keep as string[] for form
     postBy: ''
   });
 
@@ -94,7 +100,6 @@ export class MenuListComponent implements OnInit {
       return null
     })
 
-    // Debounce form updates for better performance
     debounce(schemaPath.menuName, 300);
     debounce(schemaPath.url, 300);
   });
@@ -143,25 +148,29 @@ export class MenuListComponent implements OnInit {
     return this.menuOptions().find(m => m.key === menuId)?.value ?? '';
   }
 
+  // Convert PermissionOption[] to string[] (just keys)
+  getPermissionKeys(permissions: PermissionOption[]): string[] {
+    return permissions.map(p => p.key);
+  }
+
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
-    console.log(this.form().value());
+    console.log('Form value:', this.form().value());
+    console.log('Selected permissions:', this.permissionsKey);
+    
     if (this.form().valid()) {
-
-      // Create the payload with proper types
       const formValue = this.form().value();
 
       const payload = {
         menuName: formValue.menuName,
-        parentMenuId: formValue.parentMenuId ? Number(formValue.parentMenuId) : null, // Convert here
+        parentMenuId: formValue.parentMenuId ? Number(formValue.parentMenuId) : null,
         url: formValue.url,
-        isActive: formValue.isActive === 'true', // Convert string to boolean
+        isActive: formValue.isActive === 'true',
         icon: formValue.icon,
-        permissionsKey: this.permissionsKey, // Use the separate signal
+        permissionsKey: this.getPermissionKeys(this.permissionsKey), // Convert to string[]
         postBy: formValue.postBy
       };
-
 
       console.log('Payload to send:', payload);
 
@@ -174,18 +183,27 @@ export class MenuListComponent implements OnInit {
           this.loadMenus();
           this.formReset();
         },
-        error: () => { }
+        error: (error) => {
+          console.error('Error submitting form:', error);
+        }
       });
     } else {
-      alert("Form is Invalid!")
+      alert("Form is Invalid!");
     }
-
   }
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(menu: MenuM) {
     this.selectedMenu.set(menu);
-    this.permissionsKey = menu.permissionsKey ?? []
+    
+    // Convert string[] to PermissionOption[]
+    if (menu.permissionsKey) {
+      this.permissionsKey = this.permissionOptions.filter(option => 
+        menu.permissionsKey!.includes(option.key)
+      );
+    } else {
+      this.permissionsKey = [];
+    }
 
     // Update the form model
     this.model.update(current => ({
@@ -223,6 +241,8 @@ export class MenuListComponent implements OnInit {
       permissionsKey: [],
       postBy: '',
     });
+    
+    // Reset permissions
     this.permissionsKey = [];
     this.selectedMenu.set(null);
     this.form().reset();

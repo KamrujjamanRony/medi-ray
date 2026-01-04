@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { AboutM } from '../../utils/models';
 import { AboutS } from '../../services/about-s';
 import { SeoManager } from '../../services/seo-manager';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-about',
@@ -20,7 +21,7 @@ export class AboutComponent {
 
   ngOnInit() {
     this.setProductsSeoTags();
-    this.aboutService.getAbout(3).subscribe(data => data && this.about.set(data));
+    this.aboutService.getAbout(environment.companyCode).subscribe(data => data && this.about.set(data));
     // 2. Wrap the browser-specific code in a platform check
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }

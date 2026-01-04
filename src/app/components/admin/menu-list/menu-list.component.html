@@ -119,18 +119,18 @@
       </div>
 
       <!-- Menu Permissions Multi-Select -->
-      <div class="relative pb-2">
-        <label
-          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase mt-2"
-          >Menu Permissions</label
-        >
-        <multi-select
-          [options]="permissionOptions()"
-          placeholder="Select menu permissions"
-          [(ngModel)]="permissionsKey"
-          [ngModelOptions]="{ standalone: true }"
-        ></multi-select>
-      </div>
+<div class="relative pb-2">
+  <label
+    class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase mt-2"
+    >Menu Permissions</label
+  >
+  <multi-select
+    [options]="permissionOptions"
+    placeholder="Select menu permissions"
+    [(ngModel)]="permissionsKey"
+    [ngModelOptions]="{ standalone: true }"
+  ></multi-select>
+</div>
 
       <!-- Is Active Radio Buttons -->
       <div class="space-y-3">

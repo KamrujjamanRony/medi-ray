@@ -7,10 +7,17 @@ import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-sv
 import { Field, form, required, validate, debounce } from '@angular/forms/signals';
 import { ProductS } from '../../../services/product-s';
 import { PermissionS } from '../../../services/auth/permission-s';
+import { MultiSelect } from "../../shared/multi-select/multi-select";
+import { FormsModule } from '@angular/forms';
+
+interface RelatedProductOption {
+  key: number;
+  value: string;
+}
 
 @Component({
   selector: 'app-product-list',
-  imports: [CommonModule, FontAwesomeModule, Field],
+  imports: [CommonModule, FontAwesomeModule, Field, MultiSelect, FormsModule],
   templateUrl: './product-list.html',
   styleUrl: './product-list.css',
 })
@@ -22,11 +29,13 @@ export class ProductList {
   private productService = inject(ProductS);
   private permissionService = inject(PermissionS);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('multipleFileInput') multipleFileInput!: ElementRef<HTMLInputElement>;
   imgURL = environment.ImageApi;
   emptyImg = environment.emptyImg;
 
   /* ---------------- SIGNAL STATE ---------------- */
   products = signal<ProductM[]>([]);
+  relatedProducts: RelatedProductOption[] = [];
   searchQuery = signal('');
 
   filteredProductList = computed(() => {
@@ -40,6 +49,13 @@ export class ProductList {
       )
       .reverse();
   });
+
+  relatedProductOptions = computed(() =>
+    this.products().map(product => ({
+      key: product.id,
+      value: product.title
+    }))
+  );
 
   selectedProduct = signal<ProductM | null>(null);
   selectedFile = signal<File | null>(null);
@@ -62,17 +78,33 @@ export class ProductList {
     description: '',
     category: '',
     brand: '',
+    model: '',
+    origin: '',
+    additionalInformation: '',
+    specialFeature: '',
+    catalogURL: '',
+    sl: '',
     companyID: environment.companyCode,
     imageFile: '',
     imageFiles: '',
     imageUrl: '',
-    images: [],
-    relatedProducts: [],
+    images: [] as any[],
+    relatedProducts: [] as any[],
   });
 
   /* ---------------- SIGNAL FORM ---------------- */
   form = form(this.model, (schemaPath) => {
     required(schemaPath.title, { message: 'Title is required' });
+    validate(schemaPath.sl, ({ value }) => {
+      const numberRegex = /^\d+$/;
+      if (!numberRegex.test(value())) {
+        return {
+          kind: 'complexity',
+          message: 'Product SL must be a valid number'
+        }
+      }
+      return null
+    })
 
     // Debounce form updates for better performance
     debounce(schemaPath.title, 300);
@@ -95,7 +127,7 @@ export class ProductList {
   loadProducts(title = "", description = "", companyID = environment.companyCode) {
     this.isLoading.set(true);
     this.hasError.set(false);
-    const searchParams = {companyID, title, description}
+    const searchParams = { companyID, title, description }
 
     this.productService.getAllProducts(searchParams).subscribe({
       next: (data) => {
@@ -136,6 +168,19 @@ export class ProductList {
       }
     });
   }
+  clearMultipleFileInput() {
+    setTimeout(() => {
+      const input = document.getElementById('multipleImageUrl') as HTMLInputElement;
+      if (input) {
+        input.value = '';
+      }
+    });
+  }
+
+  // Convert RelatedProductOption[] to string[] (just keys)
+  getRelatedProductKeys(relatedProduct: RelatedProductOption[]): number[] {
+    return relatedProduct.map(p => p.key);
+  }
 
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
@@ -148,12 +193,43 @@ export class ProductList {
 
     this.isSubmitted.set(true);
 
+
     const formValue = this.form().value();
+
+    const payload = {
+      companyID: formValue.companyID,
+      title: formValue.title,
+      description: formValue.description,
+      category: formValue.category,
+      brand: formValue.brand,
+      model: formValue.model,
+      origin: formValue.origin,
+      additionalInformation: formValue.additionalInformation,
+      specialFeature: formValue.specialFeature,
+      catalogURL: formValue.catalogURL,
+      sl: Number(formValue.sl),
+      imageUrl: formValue.imageUrl,
+      images: formValue.images,
+      relatedProducts: this.getRelatedProductKeys(this.relatedProducts),
+    };
+
+    console.log('Payload to send:', payload);
     const formData = new FormData();
 
-    formData.append('CompanyID', String(formValue.companyID));
-    formData.append('Title', formValue.title);
-    formData.append('Description', formValue.description ?? '');
+    formData.append('CompanyID', String(payload.companyID));
+    formData.append('Title', payload.title);
+    formData.append('Description', payload.description ?? '');
+    formData.append('Category', payload.category ?? '');
+    formData.append('Brand', payload.brand ?? '');
+    formData.append('Model', payload.model ?? '');
+    formData.append('Origin', payload.origin ?? '');
+    formData.append('AdditionalInformation', payload.additionalInformation ?? '');
+    formData.append('SpecialFeature', payload.specialFeature ?? '');
+    formData.append('CatalogURL', payload.catalogURL ?? '');
+    formData.append('SL', String(payload.sl));
+    payload.relatedProducts.forEach((prodId) => {
+      formData.append('RelatedProducts', prodId as any);
+    });
     console.log(this.selectedFile());
     // ✅ Append file correctly
     if (this.selectedFile()) {
@@ -181,11 +257,31 @@ export class ProductList {
   onUpdate(product: ProductM) {
     this.selectedProduct.set(product);
 
+    // Convert string[] to PermissionOption[]
+    if (product.relatedProducts) {
+      this.relatedProducts = this.relatedProductOptions().filter(option =>
+        product.relatedProducts!.includes(option.key)
+      );
+    } else {
+      this.relatedProducts = [];
+    }
+
     this.model.update(current => ({
       ...current,
       title: product.title,
       description: product.description ?? '',
       companyID: product.companyID,
+      category: product.category ?? '',
+      brand: product.brand ?? '',
+      model: product.model ?? '',
+      origin: product.origin ?? '',
+      additionalInformation: product.additionalInformation ?? '',
+      specialFeature: product.specialFeature ?? '',
+      catalogURL: product.catalogURL ?? '',
+      sl: product.sl?.toString() ?? '',
+      imageUrl: product.imageUrl ?? '',
+      images: product.images ?? [],
+      relatedProducts: this.relatedProductOptions().filter(rp => product.relatedProducts?.includes(rp.key)) || [],
     }));
 
     this.form().reset();
@@ -201,6 +297,10 @@ export class ProductList {
     // ✅ Clear file input safely
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
+    }
+    // ✅ Clear multiple file input safely
+    if (this.multipleFileInput) {
+      this.multipleFileInput.nativeElement.value = '';
     }
   }
 
@@ -218,18 +318,25 @@ export class ProductList {
   /* ---------------- RESET ---------------- */
   formReset() {
     this.model.set({
-    title: '',
-    description: '',
-    category: '',
-    brand: '',
-    companyID: environment.companyCode,
-    imageFile: '',
-    imageFiles: '',
-    imageUrl: '',
-    images: [],
-    relatedProducts: [],
-  });   
+      title: '',
+      description: '',
+      category: '',
+      brand: '',
+      model: '',
+      origin: '',
+      additionalInformation: '',
+      specialFeature: '',
+      catalogURL: '',
+      sl: '',
+      companyID: environment.companyCode,
+      imageFile: '',
+      imageFiles: '',
+      imageUrl: '',
+      images: [],
+      relatedProducts: [],
+    });
 
+    this.relatedProducts = [];
     this.selectedProduct.set(null);
     this.selectedFile.set(null);
     this.previewUrl.set(null);
@@ -237,10 +344,14 @@ export class ProductList {
 
     this.form().reset();
     this.clearFileInput();
+    this.clearMultipleFileInput();
 
     // ✅ SAFE way to reset file input
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
+    }
+    if (this.multipleFileInput) {
+      this.multipleFileInput.nativeElement.value = '';
     }
   }
 

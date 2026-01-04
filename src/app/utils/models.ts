@@ -42,6 +42,16 @@ export interface ProductM {
     title: string;
     description: string;
     imageUrl: string;
+    category: string;
+    brand: string;
+    model: string;
+    origin: string;
+    additionalInformation: string;
+    specialFeature: string;
+    catalogURL: string;
+    sl: number;
+    images: any[];
+    relatedProducts: any[];
 }
 
 export interface MenuM {
