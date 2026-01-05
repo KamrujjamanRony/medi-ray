@@ -1,0 +1,186 @@
+@if (isView()) {
+<section class="flex flex-col lg:flex-row gap-5">
+  @if (isInsert()) {
+  <div class="w-full md:max-w-xl border mb-10">
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center mb-5">
+      Item Form
+    </h1>
+    <form (submit)="onSubmit($event)" class="min-w-100 mx-auto px-2">
+      <!-- Description -->
+      <div>
+        @let description = form.description(); @let descriptionError = form.description().invalid() &&
+        form.description().touched();
+        <div class="relative pb-2">
+          <textarea
+            id="description"
+            [field]="form.description"
+            rows="4"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=""
+          ></textarea>
+          <label
+            for="description"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1"
+            >Item Description</label
+          >
+        </div>
+        @if (descriptionError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of description.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
+      </div>
+      
+      <!-- SL Item -->
+      <div>
+        @let slItem = form.slItem(); @let slItemError = form.slItem().invalid() &&
+        form.slItem().touched();
+        <div class="relative pb-2">
+          <input
+            type="text"
+            [field]="form.slItem"
+            id="slItem"
+            autocomplete="off"
+            class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
+            placeholder=" "
+          />
+          <label
+            for="slItem"
+            class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
+            >SL Item Number</label
+          >
+        </div>
+        @if (slItemError) {
+        <ul class="-mt-2 mb-2">
+          @for (error of slItem.errors(); track error) {
+          <li class="text-sm text-red-600">{{ error.message }}</li>
+          }
+        </ul>
+        }
+      </div>
+
+      <div class="flex gap-2">
+        <!-- Save -->
+        <input
+          type="submit"
+          [value]="selectedItem() ? 'Update' : 'Save'"
+          [disabled]="form().invalid()"
+          class="text-gray-50 bg-linear-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-emerald-300 shadow-lg shadow-emerald-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full"
+        />
+
+        <button
+          type="button"
+          (click)="formReset()"
+          class="text-gray-50 bg-linear-to-r from-red-400 via-red-500 to-red-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-red-300 shadow-lg shadow-red-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10"
+        >
+          Clear
+        </button>
+      </div>
+    </form>
+  </div>
+  }
+
+  <!-- Item List Table -->
+  <div class="w-full border mb-10 px-3 max-h-[98vh] overflow-scroll">
+    <h1 class="text-xl md:text-3xl font-bold text-emerald-500 underline text-center">
+      Item List
+    </h1>
+
+    <div
+      class="relative overflow-x-auto bg-neutral-primary-soft shadow-xs rounded-base border border-default"
+    >
+      <div class="p-4">
+        <label for="search" class="sr-only">Search</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+            <fa-icon [icon]="faMagnifyingGlass"></fa-icon>
+          </div>
+          <input
+            #searchInput
+            autocomplete="off"
+            (input)="onSearch($event)"
+            type="text"
+            id="search"
+            class="block w-full max-w-xl ps-9 pe-3 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body"
+            placeholder="Search by ID, SL Item, or Description"
+          />
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      @if (isLoading()) {
+      <p class="text-3xl font-bold text-center p-10 text-emerald-600">Loading ...</p>
+      }
+
+      <!-- Error State -->
+      @else if (hasError()) {
+      <p class="text-3xl font-bold text-center p-10 text-red-600">
+        There was an error loading data.
+      </p>
+      }
+
+      <!-- Empty State -->
+      @else if (filteredItemList().length === 0) {
+      <p class="text-3xl font-bold text-center p-10 text-orange-600">No Items found.</p>
+      }
+
+      <!-- Table -->
+      @else {
+      <table class="w-full text-sm text-left rtl:text-right text-body">
+        <thead
+          class="text-sm text-body bg-neutral-secondary-medium border-b border-t border-default-medium"
+        >
+          <tr>
+            <th scope="col" class="px-6 py-3 font-medium">ID</th>
+            <th scope="col" class="px-6 py-3 font-medium">Company ID</th>
+            <th scope="col" class="px-6 py-3 font-medium">SL Item</th>
+            <th scope="col" class="px-6 py-3 font-medium">Description</th>
+            @if (isEdit() || isDelete()) {
+            <th scope="col" class="px-6 py-3 font-medium">Actions</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of filteredItemList(); track item?.id || $index) {
+          <tr
+            class="bg-neutral-primary-soft border-b border-default hover:bg-neutral-secondary-medium"
+            [class.bg-blue-50]="selectedItem()?.id === item.id"
+          >
+            <td class="px-6 py-4 font-medium text-heading whitespace-nowrap">
+              {{ item?.id }}
+            </td>
+            <td class="px-6 py-4">{{ item?.companyID }}</td>
+            <td class="px-6 py-4">{{ item?.slItem || '-' }}</td>
+            <td class="px-6 py-4">{{ item?.description || '-' }}</td>
+            <td class="px-6 py-4">
+              @if (isEdit()) {
+              <button
+                class="text-orange-50 bg-orange-400 hover:bg-orange-500 px-3 py-1 rounded cursor-pointer mr-2"
+                (click)="onUpdate(item)"
+              >
+                <fa-icon [icon]="faPencil" class="mr-1"></fa-icon> Edit
+              </button>
+              } @if (isDelete()) {
+              <button
+                class="text-rose-50 bg-rose-600 hover:bg-rose-700 px-3 py-1 rounded cursor-pointer"
+                (click)="onDelete(item?.id!)"
+              >
+                <fa-icon [icon]="faXmark" class="mr-1"></fa-icon> Delete
+              </button>
+              }
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      }
+    </div>
+  </div>
+</section>
+} @else {
+<p class="text-3xl font-bold text-center p-10 text-red-600">
+  You don't have permission to view this page.
+</p>
+}

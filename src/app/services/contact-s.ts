@@ -2,8 +2,10 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { from, lastValueFrom, Observable } from 'rxjs';
-import { ContactM } from '../utils/models';
+import { ContactFormM, ContactM } from '../utils/models';
 import { CacheS } from './cache-s';
+
+
 
 @Injectable({
   providedIn: 'root',
@@ -13,33 +15,33 @@ export class ContactS {
   cache = inject(CacheS);
   url = `${environment.apiUrl}/Address`;
 
-  // Cached version
-  getAllContact(): Observable<ContactM[]> {
-    return from(
-      this.cache.getOrSet(
-        'contact_all',
-        () => lastValueFrom(this.http.get<ContactM[]>(this.url)),
-        5
-      )
-    );
-  }
+  // // Cached version
+  // getAllContact(): Observable<ContactM[]> {
+  //   return from(
+  //     this.cache.getOrSet(
+  //       'contact_all',
+  //       () => lastValueFrom(this.http.get<ContactM[]>(this.url)),
+  //       5
+  //     )
+  //   );
+  // }
+
+  // // Cached version
+  // getCompanyContact(companyID: number): Observable<ContactM | undefined> {
+  //   return from(
+  //     this.cache.getOrSet(
+  //       `contact_company_${companyID}`,
+  //       async () => {
+  //         const allContact = await lastValueFrom(this.http.get<ContactM[]>(this.url));
+  //         return allContact.find(contact => contact.companyID === companyID);
+  //       },
+  //       5
+  //     )
+  //   );
+  // }
 
   // Cached version
-  getCompanyContact(companyID: number): Observable<ContactM | undefined> {
-    return from(
-      this.cache.getOrSet(
-        `contact_company_${companyID}`,
-        async () => {
-          const allContact = await lastValueFrom(this.http.get<ContactM[]>(this.url));
-          return allContact.find(contact => contact.companyID === companyID);
-        },
-        5
-      )
-    );
-  }
-
-  // Cached version
-  getContact(id: number): Observable<ContactM> {
+  getContact(id: number = environment.companyCode): Observable<ContactM> {
     return from(
       this.cache.getOrSet(
         `contact_item_${id}`,
@@ -61,12 +63,17 @@ export class ContactS {
     
     this.cache.clear(`contact_item_${id}`);
     
-    return this.http.put<ContactM>(`${this.url}/EditAddress/${id}`, updateAddressRequest);
+    return this.http.put<ContactM>(`${this.url}/${id}`, updateAddressRequest);
   }
 
   // Optional: Manual refresh
   refreshContact(): void {
     this.cache.clearByPattern(/^cache_contact_/);
+  }
+  
+  // Send contact email
+  sendContactEmail(contactData: ContactFormM): Observable<any> {
+    return this.http.post(`/api/email/send-contact`, contactData);
   }
   
 }

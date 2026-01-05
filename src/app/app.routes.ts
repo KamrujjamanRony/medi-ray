@@ -31,6 +31,11 @@ export const routes: Routes = [
           import('./components/about/about').then(m => m.AboutComponent),
       },
       {
+        path: 'contact',
+        loadComponent: () =>
+          import('./components/contact/contact').then(m => m.Contact),
+      },
+      {
         path: 'test',
         component: Page,
       },
@@ -49,6 +54,12 @@ export const routes: Routes = [
         data: { preload: true },
       },
       {
+        path: 'item',
+        loadComponent: () =>
+          import('./components/admin/item-list/item-list').then(m => m.ItemList),
+        data: { preload: true },
+      },
+      {
         path: 'product',
         loadComponent: () =>
           import('./components/admin/product-list/product-list').then(m => m.ProductList),
@@ -64,6 +75,18 @@ export const routes: Routes = [
         path: 'menu',
         loadComponent: () =>
           import('./components/admin/menu-list/menu-list.component').then(m => m.MenuListComponent),
+        data: { preload: true },
+      },
+      {
+        path: 'about',
+        loadComponent: () =>
+          import('./components/admin/about-update/about-update').then(m => m.AboutUpdate),
+        data: { preload: true },
+      },
+      {
+        path: 'contact',
+        loadComponent: () =>
+          import('./components/admin/contact-update/contact-update').then(m => m.ContactUpdate),
         data: { preload: true },
       },
     ],

@@ -38,14 +38,16 @@
         @let category = form.category(); @let categoryError = form.category().invalid() &&
         form.category().touched();
         <div class="relative pb-2">
-          <input
-            type="text"
+          <select
             [field]="form.category"
             id="category"
-            autocomplete="off"
             class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
-            placeholder=" "
-          />
+          >
+            <option value="">Select a category</option>
+            @for (item of itemOptions(); track item.key) {
+              <option [value]="item.key">{{ item.value }}</option>
+            }
+          </select>
           <label
             for="category"
             class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
@@ -171,7 +173,7 @@
       <!-- Related Products Multi-Select -->
       <div class="relative pb-2">
         <label
-          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 uppercase mt-2"
+          class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize mt-2"
           >Related Products</label
         >
         <multi-select
@@ -287,32 +289,59 @@
         }
       </div>
 
-      <!-- Image File Upload -->
-      <div class="pb-2">
-        <label class="block text-sm font-medium text-heading" for="imageUrl">Upload Image</label>
-        <input
-          #fileInput
-          id="imageUrl"
-          type="file"
-          accept="image/*"
-          (change)="onFileSelect($event)"
-          class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
-        /><p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
-      </div>
+    <!-- Image File Upload -->
+<div class="pb-2">
+  <label class="block text-sm font-medium text-heading" for="imageUrl">Main Product Image</label>
+  <input
+    #fileInput
+    id="imageUrl"
+    type="file"
+    accept="image/*"
+    (change)="onMainImageSelect($event)"
+    class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
+  />
+  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
+  
+  <!-- Main Image Preview -->
+  @if (previewUrl()) {
+    <div class="mt-2">
+      <img [src]="previewUrl()" alt="Preview" class="h-32 w-32 object-cover rounded border">
+    </div>
+  }
+</div>
 
-      <!-- Multiple Image File Upload -->
-      <div class="pb-2">
-        <label class="block text-sm font-medium text-heading" for="imageUrl">Multiple Image Upload</label>
-        <input
-          #multipleFileInput
-          id="MultipleImageUrl"
-          type="file"
-          accept="image/*"
-          (change)="onFileSelect($event)"
-           multiple
-          class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
-        /><p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
-      </div>
+<!-- Multiple Image File Upload -->
+<div class="pb-2">
+  <label class="block text-sm font-medium text-heading" for="multipleImageUrl">Additional Product Images</label>
+  <input
+    #multipleFileInput
+    id="multipleImageUrl"
+    type="file"
+    accept="image/*"
+    (change)="onMultipleImageSelect($event)"
+    multiple
+    class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
+  />
+  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
+  
+  <!-- Multiple Images Preview -->
+  @if (multiplePreviewUrls().length > 0) {
+    <div class="mt-2 grid grid-cols-4 gap-2">
+      @for (preview of multiplePreviewUrls(); track preview.url) {
+        <div class="relative">
+          <img [src]="preview.url" alt="Preview" class="h-24 w-full object-cover rounded border">
+          <button 
+            type="button"
+            (click)="removeMultipleImagePreview(preview.index)"
+            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs cursor-pointer"
+          >
+            ×
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>
 
       <div class="flex gap-2">
         <!-- Save -->
@@ -387,6 +416,7 @@
         >
           <tr>
             <th scope="col" class="px-6 py-3 font-medium">Image</th>
+            <th scope="col" class="px-6 py-3 font-medium">Images</th>
             <th scope="col" class="px-6 py-3 font-medium">Title</th>
             <th scope="col" class="px-6 py-3 font-medium">Description</th>
             @if (isEdit() || isDelete()) {
@@ -406,6 +436,17 @@
                 class="w-16 h-16 object-cover rounded"
               />
             </th>
+            <td class="px-6 py-4">
+              <div class="flex flex-wrap gap-2">
+                @for (img of item.images || []; track img) {
+                <img
+                  [src]="imgURL ? imgURL + img : emptyImg"
+                  alt="Product Image"
+                  class="w-16 h-16 object-cover rounded"
+                />
+                }
+              </div>
+            </td>
             <td class="px-6 py-4">{{ item?.title }}</td>
             <td class="px-6 py-4">{{ item?.description || '-' }}</td>
             <td class="px-6 py-4">

@@ -32,20 +32,6 @@ export class CarouselS {
   }
 
   // Cached version
-  getCompanyCarousel(companyID: number): Observable<CarouselM[]> {
-    return from(
-      this.cache.getOrSet(
-        `carousel_company_${companyID}`,
-        async () => {
-          const allCarousel = await lastValueFrom(this.http.get<CarouselM[]>(this.url));
-          return allCarousel.filter(a => a.companyID === companyID);
-        },
-        15
-      )
-    );
-  }
-
-  // Cached version
   getCarousel(id: string): Observable<CarouselM> {
     return from(
       this.cache.getOrSet(

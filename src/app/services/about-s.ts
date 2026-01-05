@@ -14,32 +14,32 @@ export class AboutS {
   url = `${environment.apiUrl}/AboutUs`;
 
   // Cached version
-  getAllAbout(): Observable<AboutM[]> {
-    return from(
-      this.cache.getOrSet(
-        'about_all',
-        () => lastValueFrom(this.http.get<AboutM[]>(this.url)),
-        5
-      )
-    );
-  }
+  // getAllAbout(): Observable<AboutM[]> {
+  //   return from(
+  //     this.cache.getOrSet(
+  //       'about_all',
+  //       () => lastValueFrom(this.http.get<AboutM[]>(this.url)),
+  //       5
+  //     )
+  //   );
+  // }
 
   // Cached version
-  getCompanyAbout(companyID: number): Observable<AboutM | undefined> {
-    return from(
-      this.cache.getOrSet(
-        `about_company_${companyID}`,
-        async () => {
-          const allAbout = await lastValueFrom(this.http.get<AboutM[]>(this.url));
-          return allAbout.find(about => about.companyID === companyID);
-        },
-        5
-      )
-    );
-  }
+  // getCompanyAbout(companyID: number): Observable<AboutM | undefined> {
+  //   return from(
+  //     this.cache.getOrSet(
+  //       `about_company_${companyID}`,
+  //       async () => {
+  //         const allAbout = await lastValueFrom(this.http.get<AboutM[]>(this.url));
+  //         return allAbout.find(about => about.companyID === companyID);
+  //       },
+  //       5
+  //     )
+  //   );
+  // }
 
   // Cached version
-  getAbout(id: any): Observable<AboutM> {
+  getAbout(id: any = environment.companyCode): Observable<AboutM> {
     return from(
       this.cache.getOrSet(
         `about_item_${id}`,
@@ -61,7 +61,7 @@ export class AboutS {
     
     this.cache.clear(`about_item_${id}`);
     
-    return this.http.put<AboutM>(`${this.url}/EditAboutUs/${id}`, updateAboutRequest);
+    return this.http.put<AboutM>(`${this.url}/${id}`, updateAboutRequest);
   }
 
   // Optional: Manual refresh

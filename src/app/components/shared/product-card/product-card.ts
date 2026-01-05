@@ -24,6 +24,4 @@ import { IMAGE_LOADER, ImageLoaderConfig, NgOptimizedImage } from '@angular/comm
 })
 export class ProductCard {
   product = input<ProductM>();
-  ImageApi = environment.ImageApi;
-
 }

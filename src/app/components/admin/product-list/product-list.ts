@@ -1,6 +1,6 @@
 import { Component, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ProductM } from '../../../utils/models';
+import { ItemM, ProductM } from '../../../utils/models';
 import { environment } from '../../../../environments/environment';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
@@ -9,10 +9,17 @@ import { ProductS } from '../../../services/product-s';
 import { PermissionS } from '../../../services/auth/permission-s';
 import { MultiSelect } from "../../shared/multi-select/multi-select";
 import { FormsModule } from '@angular/forms';
+import { ItemS } from '../../../services/item-s';
 
 interface RelatedProductOption {
   key: number;
   value: string;
+}
+
+interface ImagePreview {
+  url: string;
+  file: File;
+  index: number;
 }
 
 @Component({
@@ -25,41 +32,31 @@ export class ProductList {
   faPencil = faPencil;
   faXmark = faXmark;
   faMagnifyingGlass = faMagnifyingGlass;
+  
   /* ---------------- DI ---------------- */
   private productService = inject(ProductS);
+  private itemService = inject(ItemS);
   private permissionService = inject(PermissionS);
+  
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('multipleFileInput') multipleFileInput!: ElementRef<HTMLInputElement>;
+  
   imgURL = environment.ImageApi;
   emptyImg = environment.emptyImg;
 
   /* ---------------- SIGNAL STATE ---------------- */
   products = signal<ProductM[]>([]);
+  items = signal<ItemM[]>([]);
   relatedProducts: RelatedProductOption[] = [];
   searchQuery = signal('');
-
-  filteredProductList = computed(() => {
-    const query = this.searchQuery().toLowerCase();
-
-    return this.products()
-      .filter(product =>
-        product.title?.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        String(product.companyID ?? '').toLowerCase().includes(query)
-      )
-      .reverse();
-  });
-
-  relatedProductOptions = computed(() =>
-    this.products().map(product => ({
-      key: product.id,
-      value: product.title
-    }))
-  );
 
   selectedProduct = signal<ProductM | null>(null);
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
+  
+  // New signals for multiple images
+  selectedFiles = signal<File[]>([]);
+  multiplePreviewUrls = signal<ImagePreview[]>([]);
 
   isLoading = signal(false);
   hasError = signal(false);
@@ -71,6 +68,33 @@ export class ProductList {
 
   highlightedTr = signal<number>(-1);
   isSubmitted = signal(false);
+
+  /* ---------------- COMPUTED ---------------- */
+  filteredProductList = computed(() => {
+    const query = this.searchQuery().toLowerCase();
+
+    return this.products()
+      .filter(product =>
+        product.title?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        String(product.companyID ?? '').toLowerCase().includes(query)
+      )      
+      .sort((a, b) => (a.sl! - b.sl!));
+  });
+
+  relatedProductOptions = computed(() =>
+    this.products().map(product => ({
+      key: product.id,
+      value: product.title
+    }))
+  );
+
+  itemOptions = computed(() =>
+    this.items().map(item => ({
+      key: item.id,
+      value: item.description || ''
+    }))
+  );
 
   /* ---------------- FORM MODEL ---------------- */
   model = signal({
@@ -106,7 +130,6 @@ export class ProductList {
       return null
     })
 
-    // Debounce form updates for better performance
     debounce(schemaPath.title, 300);
   });
 
@@ -114,6 +137,7 @@ export class ProductList {
   ngOnInit(): void {
     this.loadProducts();
     this.loadPermissions();
+    this.loadItems();
   }
 
   /* ---------------- LOADERS ---------------- */
@@ -141,13 +165,25 @@ export class ProductList {
     });
   }
 
+  loadItems(companyID = environment.companyCode) {
+    this.itemService.getAllItems({ companyID }).subscribe({
+      next: (data) => {
+        // Process items if needed
+        this.items.set(data);
+      },
+      error: (error) => {
+        console.error('Error loading items:', error);
+      }
+    });
+  }
+
   /* ---------------- SEARCH ---------------- */
   onSearch(event: Event) {
     this.searchQuery.set((event.target as HTMLInputElement).value.trim());
   }
 
-  /* ---------------- Image File Handler ---------------- */
-  onFileSelect(event: Event) {
+  /* ---------------- Image File Handlers ---------------- */
+  onMainImageSelect(event: Event) {
     const input = event.target as HTMLInputElement;
 
     if (input.files && input.files.length > 0) {
@@ -160,21 +196,70 @@ export class ProductList {
     }
   }
 
-  clearFileInput() {
-    setTimeout(() => {
-      const input = document.getElementById('imageUrl') as HTMLInputElement;
-      if (input) {
-        input.value = '';
-      }
-    });
+  onMultipleImageSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const newPreviews: ImagePreview[] = [];
+
+    if (input.files && input.files.length > 0) {
+      // Convert FileList to array
+      const files = Array.from(input.files);
+      
+      // Add new files to existing ones
+      const currentFiles = this.selectedFiles();
+      const updatedFiles = [...currentFiles, ...files];
+      this.selectedFiles.set(updatedFiles);
+
+      // Create previews for new files only
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const preview: ImagePreview = {
+            url: e.target?.result as string,
+            file: file,
+            index: currentFiles.length + index
+          };
+          newPreviews.push(preview);
+          
+          // When all new previews are loaded, update the signal
+          if (newPreviews.length === files.length) {
+            this.multiplePreviewUrls.update(current => [...current, ...newPreviews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   }
+
+  removeMultipleImagePreview(index: number) {
+    // Remove from previews
+    this.multiplePreviewUrls.update(previews => 
+      previews.filter(p => p.index !== index)
+    );
+    
+    // Remove from selected files
+    this.selectedFiles.update(files => 
+      files.filter((_, i) => i !== index)
+    );
+    
+    // Update indices for remaining previews
+    this.multiplePreviewUrls.update(previews => 
+      previews.map((preview, i) => ({
+        ...preview,
+        index: i
+      }))
+    );
+  }
+
+  clearFileInput() {
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+  }
+
   clearMultipleFileInput() {
-    setTimeout(() => {
-      const input = document.getElementById('multipleImageUrl') as HTMLInputElement;
-      if (input) {
-        input.value = '';
-      }
-    });
+    if (this.multipleFileInput) {
+      this.multipleFileInput.nativeElement.value = '';
+    }
   }
 
   // Convert RelatedProductOption[] to string[] (just keys)
@@ -192,7 +277,6 @@ export class ProductList {
     }
 
     this.isSubmitted.set(true);
-
 
     const formValue = this.form().value();
 
@@ -214,8 +298,10 @@ export class ProductList {
     };
 
     console.log('Payload to send:', payload);
+    
     const formData = new FormData();
 
+    // Append form fields
     formData.append('CompanyID', String(payload.companyID));
     formData.append('Title', payload.title);
     formData.append('Description', payload.description ?? '');
@@ -227,13 +313,23 @@ export class ProductList {
     formData.append('SpecialFeature', payload.specialFeature ?? '');
     formData.append('CatalogURL', payload.catalogURL ?? '');
     formData.append('SL', String(payload.sl));
+    
+    // Append related products
     payload.relatedProducts.forEach((prodId) => {
-      formData.append('RelatedProducts', prodId as any);
+      formData.append('RelatedProducts', prodId.toString());
     });
-    console.log(this.selectedFile());
-    // ✅ Append file correctly
+    
+    // ✅ Append main image file
     if (this.selectedFile()) {
       formData.append('ImageFile', this.selectedFile() as File);
+    }
+    
+    // ✅ Append multiple image files
+    const multipleFiles = this.selectedFiles();
+    if (multipleFiles.length > 0) {
+      multipleFiles.forEach((file, index) => {
+        formData.append('ImageFiles', file); // Use same name for backend
+      });
     }
 
     const request$ = this.selectedProduct()
@@ -246,65 +342,85 @@ export class ProductList {
         this.formReset();
         this.isSubmitted.set(false);
       },
-      error: () => {
+      error: (error) => {
+        console.error('Error submitting form:', error);
         this.isSubmitted.set(false);
       }
     });
   }
 
-
   /* ---------------- UPDATE ---------------- */
-  onUpdate(product: ProductM) {
-    this.selectedProduct.set(product);
+onUpdate(product: ProductM) {
+  this.selectedProduct.set(product);
 
-    // Convert string[] to PermissionOption[]
-    if (product.relatedProducts) {
-      this.relatedProducts = this.relatedProductOptions().filter(option =>
-        product.relatedProducts!.includes(option.key)
-      );
-    } else {
-      this.relatedProducts = [];
-    }
-
-    this.model.update(current => ({
-      ...current,
-      title: product.title,
-      description: product.description ?? '',
-      companyID: product.companyID,
-      category: product.category ?? '',
-      brand: product.brand ?? '',
-      model: product.model ?? '',
-      origin: product.origin ?? '',
-      additionalInformation: product.additionalInformation ?? '',
-      specialFeature: product.specialFeature ?? '',
-      catalogURL: product.catalogURL ?? '',
-      sl: product.sl?.toString() ?? '',
-      imageUrl: product.imageUrl ?? '',
-      images: product.images ?? [],
-      relatedProducts: this.relatedProductOptions().filter(rp => product.relatedProducts?.includes(rp.key)) || [],
-    }));
-
-    this.form().reset();
-
-    this.previewUrl.set(
-      product.imageUrl
-        ? `${environment.apiUrl}/uploads/${product.imageUrl}`
-        : null
+  // Convert related products
+  if (product.relatedProducts) {
+    this.relatedProducts = this.relatedProductOptions().filter(option =>
+      product.relatedProducts!.includes(option.key)
     );
-
-    this.selectedFile.set(null);
-
-    // ✅ Clear file input safely
-    if (this.fileInput) {
-      this.fileInput.nativeElement.value = '';
-    }
-    // ✅ Clear multiple file input safely
-    if (this.multipleFileInput) {
-      this.multipleFileInput.nativeElement.value = '';
-    }
+  } else {
+    this.relatedProducts = [];
   }
 
+  // Update form model
+  this.model.update(current => ({
+    ...current,
+    title: product.title,
+    description: product.description ?? '',
+    companyID: product.companyID,
+    category: product.category ?? '',
+    brand: product.brand ?? '',
+    model: product.model ?? '',
+    origin: product.origin ?? '',
+    additionalInformation: product.additionalInformation ?? '',
+    specialFeature: product.specialFeature ?? '',
+    catalogURL: product.catalogURL ?? '',
+    sl: product.sl?.toString() ?? '',
+    imageUrl: product.imageUrl ?? '',
+    images: product.images ?? [],
+    relatedProducts: this.relatedProductOptions().filter(rp => product.relatedProducts?.includes(rp.key)) || [],
+  }));
 
+  this.form().reset();
+
+  // FIX: Use imgURL instead of environment.apiUrl
+  // Set main image preview
+  if (product.imageUrl) {
+    this.previewUrl.set(
+      this.imgURL ? `${this.imgURL}${product.imageUrl}` : product.imageUrl
+    );
+  } else {
+    this.previewUrl.set(null);
+  }
+
+  // Reset main image file
+  this.selectedFile.set(null);
+
+  // FIX: Set multiple image previews if exists - use imgURL
+  if (product.images && product.images.length > 0) {
+    const previews: ImagePreview[] = [];
+    product.images.forEach((image, index) => {
+      previews.push({
+        url: this.imgURL ? `${this.imgURL}${image}` : image,
+        file: new File([], image), // Empty file for existing images
+        index: index
+      });
+    });
+    this.multiplePreviewUrls.set(previews);
+    this.selectedFiles.set([]); // No new files selected for existing images
+  } else {
+    this.multiplePreviewUrls.set([]);
+    this.selectedFiles.set([]);
+  }
+
+  // Clear file inputs
+  if (this.fileInput) {
+    this.fileInput.nativeElement.value = '';
+  }
+  if (this.multipleFileInput) {
+    this.multipleFileInput.nativeElement.value = '';
+  }
+}
 
   /* ---------------- DELETE ---------------- */
   onDelete(id: any) {
@@ -338,21 +454,18 @@ export class ProductList {
 
     this.relatedProducts = [];
     this.selectedProduct.set(null);
+    
+    // Reset image states
     this.selectedFile.set(null);
     this.previewUrl.set(null);
+    this.selectedFiles.set([]);
+    this.multiplePreviewUrls.set([]);
+    
     this.isSubmitted.set(false);
-
     this.form().reset();
+    
+    // Clear file inputs
     this.clearFileInput();
     this.clearMultipleFileInput();
-
-    // ✅ SAFE way to reset file input
-    if (this.fileInput) {
-      this.fileInput.nativeElement.value = '';
-    }
-    if (this.multipleFileInput) {
-      this.multipleFileInput.nativeElement.value = '';
-    }
   }
-
 }

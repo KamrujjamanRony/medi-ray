@@ -32,17 +32,20 @@ export class Sidebar {
       id: 1, label: 'Product', icon: faXRay, route: '/admin/product'
     },
     {
-      id: 2, label: 'User', icon: faUser, route: '/admin/user'
+      id: 2, label: 'Item', icon: faXRay, route: '/admin/item'
     },
     {
-      id: 3, label: 'Menu', icon: faRectangleList, route: '/admin/menu'
+      id: 3, label: 'User', icon: faUser, route: '/admin/user'
     },
     {
-      id: 4, label: 'About', icon: faAddressCard, route: '/admin/about'
+      id: 4, label: 'Menu', icon: faRectangleList, route: '/admin/menu'
     },
     {
-      id: 5, label: 'Address', icon: faAddressBook, route: '/admin/address'
+      id: 5, label: 'About', icon: faAddressCard, route: '/admin/about'
     },
+    {
+      id: 6, label: 'Contact', icon: faAddressBook, route: '/admin/contact'
+    }
   ]);
 
   menuState = signal<Record<number, boolean>>({});
