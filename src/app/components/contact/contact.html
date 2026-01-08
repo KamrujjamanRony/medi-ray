@@ -13,7 +13,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Contact Information -->
       <div class="bg-white rounded-2xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-emerald-600 mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-emerald-800 mb-6 flex items-center gap-2">
           <fa-icon [icon]="faEnvelope" class="text-emerald-500"></fa-icon>
           Contact Information
         </h2>
@@ -40,13 +40,13 @@
             @if (contactInfo().email) {
               <div class="flex items-start gap-3">
                 <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <fa-icon [icon]="faEnvelope" class="text-emerald-600"></fa-icon>
+                  <fa-icon [icon]="faEnvelope" class="text-emerald-800"></fa-icon>
                 </div>
                 <div>
                   <h3 class="font-semibold text-gray-700">Email</h3>
                   <a 
                     [href]="'mailto:' + contactInfo().email" 
-                    class="text-emerald-600 hover:text-emerald-700 hover:underline"
+                    class="text-emerald-800 hover:text-emerald-900 hover:underline"
                   >
                     {{ contactInfo().email }}
                   </a>
@@ -134,7 +134,7 @@
                       <a 
                         [href]="contactInfo().othersLink2" 
                         target="_blank"
-                        class="text-green-600 hover:text-green-700 hover:underline"
+                        class="text-green-800 hover:text-green-700 hover:underline"
                       >
                         Link 2
                       </a>
@@ -149,7 +149,7 @@
 
       <!-- Contact Form -->
       <div class="bg-white rounded-2xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-emerald-600 mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-emerald-800 mb-6 flex items-center gap-2">
           <fa-icon [icon]="faPaperPlane" class="text-emerald-500"></fa-icon>
           Send us a Message
         </h2>
@@ -159,13 +159,13 @@
           <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div>
                 <h3 class="font-semibold text-green-800">Message Sent Successfully!</h3>
-                <p class="text-green-600 text-sm">Thank you for contacting us. We'll respond to your email shortly.</p>
+                <p class="text-green-800 text-sm">Thank you for contacting us. We'll respond to your email shortly.</p>
               </div>
             </div>
           </div>
@@ -186,7 +186,7 @@
               />
               <label
                 for="name"
-                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
+                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
               >
                 <fa-icon [icon]="faUser" class="mr-2 text-gray-400"></fa-icon>
                 Full Name
@@ -211,7 +211,7 @@
               />
               <label
                 for="email"
-                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
+                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
               >
                 <fa-icon [icon]="faEnvelope" class="mr-2 text-gray-400"></fa-icon>
                 Email Address
@@ -236,7 +236,7 @@
               />
               <label
                 for="subject"
-                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
+                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
               >
                 <fa-icon [icon]="faTag" class="mr-2 text-gray-400"></fa-icon>
                 Subject
@@ -260,7 +260,7 @@
               ></textarea>
               <label
                 for="message"
-                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-600 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
+                class="absolute text-sm text-gray-500 duration-300 transform -translate-y-3 scale-75 top-4 z-10 origin-left start-4 peer-focus:text-emerald-800 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3"
               >
                 <fa-icon [icon]="faEnvelope" class="mr-2 text-gray-400"></fa-icon>
                 Your Message
@@ -271,7 +271,7 @@
             }
             <div class="mt-1 text-xs text-gray-500">
               Your message will be sent to: 
-              <span class="font-semibold text-emerald-600">
+              <span class="font-semibold text-emerald-800">
                 {{ contactInfo()?.email || 'our contact email' }}
               </span>
             </div>
@@ -309,17 +309,17 @@
   <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4 text-green-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
       </div>
       <div>
         <h3 class="font-semibold text-green-800">Message Sent Successfully!</h3>
-        <p class="text-green-600 text-sm">
+        <p class="text-green-800 text-sm">
           Thank you for contacting us. Your message has been sent to 
           <span class="font-semibold">{{ contactInfo()?.email }}</span>.
         </p>
-        <p class="text-green-600 text-sm mt-1">
+        <p class="text-green-800 text-sm mt-1">
           We'll respond to <span class="font-semibold">{{ form.email().value() }}</span> shortly.
         </p>
       </div>

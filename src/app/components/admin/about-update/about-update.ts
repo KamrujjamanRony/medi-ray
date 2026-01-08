@@ -52,6 +52,12 @@ export class AboutUpdate {
     description4: '',
     title5: '',
     description5: '',
+    title6: '',
+    description6: '',
+    title7: '',
+    description7: '',
+    title8: '',
+    description8: '',
     imageFile: '',
     imageUrl: '',
   });
@@ -108,6 +114,12 @@ export class AboutUpdate {
       description4: data.description4 || '',
       title5: data.title5 || '',
       description5: data.description5 || '',
+      title6: data.title6 || '',
+      description6: data.description6 || '',
+      title7: data.title7 || '',
+      description7: data.description7 || '',
+      title8: data.title8 || '',
+      description8: data.description8 || '',
       imageUrl: data.imageUrl || '',
       companyID: data.companyID?.toString() || environment.companyCode.toString(),
     }));
@@ -166,17 +178,23 @@ export class AboutUpdate {
       description4: formValue.description4,
       title5: formValue.title5,
       description5: formValue.description5,
+      title6: formValue.title6,
+      description6: formValue.description6,
+      title7: formValue.title7,
+      description7: formValue.description7,
+      title8: formValue.title8,
+      description8: formValue.description8,
     };
 
     const formData = new FormData();
-    
+
     // Append all text fields
     Object.entries(payload).forEach(([key, value]) => {
       if (value !== null && value !== undefined) {
         formData.append(key, value.toString());
       }
     });
-    
+
     // Append image file if selected
     if (this.selectedFile()) {
       formData.append('ImageFile', this.selectedFile() as File);
@@ -186,14 +204,14 @@ export class AboutUpdate {
     }
 
     const id = this.aboutData()?.id?.toString() || environment.companyCode.toString();
-    
+
     this.aboutService.updateAbout(id, formData).subscribe({
       next: (response) => {
         this.aboutData.set(response);
         this.updateForm(response);
         this.isSubmitted.set(false);
         this.isUpdated.set(true);
-        
+
         // Reset update message after 3 seconds
         setTimeout(() => this.isUpdated.set(false), 3000);
       },
@@ -211,14 +229,7 @@ export class AboutUpdate {
     if (this.aboutData()) {
       this.updateForm(this.aboutData()!);
     }
-    
     this.selectedFile.set(null);
-    // this.previewUrl.set(
-    //   this.aboutData()?.imageUrl 
-    //     ? (environment.ImageApi ? `${environment.ImageApi}${this.aboutData()!.imageUrl}` : this.aboutData()!.imageUrl)
-    //     : null
-    // );
-    
     this.isSubmitted.set(false);
     this.clearFileInput();
   }

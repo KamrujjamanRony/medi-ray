@@ -100,7 +100,7 @@ export class ProductList {
   model = signal({
     title: '',
     description: '',
-    category: '',
+    itemId: '',
     brand: '',
     model: '',
     origin: '',
@@ -284,7 +284,7 @@ export class ProductList {
       companyID: formValue.companyID,
       title: formValue.title,
       description: formValue.description,
-      category: formValue.category,
+      itemId: formValue.itemId,
       brand: formValue.brand,
       model: formValue.model,
       origin: formValue.origin,
@@ -305,7 +305,7 @@ export class ProductList {
     formData.append('CompanyID', String(payload.companyID));
     formData.append('Title', payload.title);
     formData.append('Description', payload.description ?? '');
-    formData.append('Category', payload.category ?? '');
+    formData.append('ItemId', payload.itemId ?? '');
     formData.append('Brand', payload.brand ?? '');
     formData.append('Model', payload.model ?? '');
     formData.append('Origin', payload.origin ?? '');
@@ -368,7 +368,7 @@ onUpdate(product: ProductM) {
     title: product.title,
     description: product.description ?? '',
     companyID: product.companyID,
-    category: product.category ?? '',
+    itemId: product.itemId ?? '',
     brand: product.brand ?? '',
     model: product.model ?? '',
     origin: product.origin ?? '',
@@ -436,7 +436,7 @@ onUpdate(product: ProductM) {
     this.model.set({
       title: '',
       description: '',
-      category: '',
+      itemId: '',
       brand: '',
       model: '',
       origin: '',

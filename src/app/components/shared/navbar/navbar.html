@@ -1,9 +1,7 @@
-
-
 <nav class="bg-neutral-primary fixed w-full z-20 top-0 start-0 border-b border-default">
   <div class="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
   <a routerLink="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-      <img src="favicon.ico" class="h-7" alt="Logo" />
+      <img src="favicon.ico" width="28" height="28" class="aspect-auto" alt="Logo" />
       <span class="self-center text-xl text-heading font-semibold whitespace-nowrap">X-Ray</span>
   </a>
   <div class="flex items-center md:order-2">
@@ -32,16 +30,39 @@
       </div>
       <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-default rounded-base bg-neutral-secondary-soft md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-neutral-primary">
         <li>
-          <a routerLink="/" class="block py-2 px-3 text-white bg-brand rounded md:bg-transparent md:text-fg-brand md:p-0" aria-current="page">Home</a>
+          <a routerLink="/" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent" aria-current="">Home</a>
+        </li>
+         <li>
+            <button id="dropdownNvbarButton" data-dropdown-toggle="dropdownNavbar" class="flex items-center justify-between w-full py-2 px-3 rounded font-medium text-heading md:w-auto hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0">
+              Products 
+              <svg class="w-4 h-4 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+          </button>
+          <!-- Dropdown menu -->
+          <div id="dropdownNavbar" class="z-10 hidden bg-neutral-primary-medium border border-default-medium rounded-base shadow-lg w-44">
+              <ul class="p-2 text-sm text-body font-medium" aria-labelledby="dropdownNvbarButton">@if (dropdownData().length > 0) {
+                @for (item of dropdownData(); track item.link) {
+                  <li>
+                    <a [routerLink]="item.link" 
+                       class="inline-flex items-center w-full p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded">
+                      {{ item.name }}
+                    </a>
+                  </li>
+                }
+              } @else {
+                <li>
+                  <span class="block px-4 py-2 text-body">
+                    Loading products...
+                  </span>
+                </li>
+              }
+              </ul>
+          </div>
         </li>
         <li>
-          <a routerLink="/about" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent">About</a>
+          <a routerLink="/about" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent" aria-current="about">About</a>
         </li>
         <li>
-          <a routerLink="/contact" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent">Contact</a>
-        </li>
-        <li>
-          <a routerLink="/products" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent">Products</a>
+          <a routerLink="/contact" class="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent" aria-current="contact">Contact</a>
         </li>
       </ul>
     </div>

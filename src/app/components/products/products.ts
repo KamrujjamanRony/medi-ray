@@ -5,6 +5,7 @@ import { ProductM } from '../../utils/models';
 import { ProductS } from '../../services/product-s';
 import { environment } from '../../../environments/environment';
 import { SeoManager } from '../../services/seo-manager';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-products',
@@ -13,30 +14,89 @@ import { SeoManager } from '../../services/seo-manager';
   styleUrl: './products.css',
 })
 export class Products {
-  productService = inject(ProductS);
-  seoManager = inject(SeoManager);
-  products = signal<ProductM[]>([]);
-  renderer = inject(Renderer2);
-  // 1. Inject PLATFORM_ID
-  private platformId = inject(PLATFORM_ID);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly productService = inject(ProductS);
+  private readonly seoManager = inject(SeoManager);
+  private readonly renderer = inject(Renderer2);
+  private readonly platformId = inject(PLATFORM_ID);
 
-  ngOnInit() {
-    this.setProductsSeoTags('');
-    this.loadProducts();
-    // 2. Wrap the browser-specific code in a platform check
-    isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
+  readonly products = signal<ProductM[]>([]);
+  readonly isLoading = signal<boolean>(true);
+  readonly hasError = signal<boolean>(false);
+
+  ngOnInit(): void {
+    this.subscribeToRouteParams();
+    this.scrollToTopOnBrowser();
   }
 
-  loadProducts(title = "", description = "", companyID = environment.companyCode) {
-    const searchParams = { companyID, title, description }
+  /**
+   * Subscribe to route parameters
+   */
+  private subscribeToRouteParams(): void {
+    this.route.paramMap.subscribe(params => {
+      const itemId = params.get('itemId');
+      const itemSlug = params.get('itemSlug');
+      console.log(`itemId: ${itemId} and itemSlug: ${itemSlug}`);
+      
+      // If both parameters are present
+      if (itemSlug) {
+        const categoryName = itemSlug.replace(/-/g, ' ');
+        this.setProductsSeoTags(categoryName);
+      } 
+      // If only ID is present (backward compatibility)
+      if (itemId) {
+        this.loadProducts(Number(itemId));
+      }
+      // Load all products
+      else {
+        this.loadProducts(null);
+      }
+    });
+  }
+
+  /**
+   * Scroll to top only in browser environment
+   */
+  private scrollToTopOnBrowser(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
+    }
+  }
+
+  /**
+   * Load products based on search parameters
+   */
+  loadProducts(
+    itemId: number | null, 
+    title: string = '', 
+    description: string = '', 
+    companyID: number = environment.companyCode
+  ): void {
+    this.isLoading.set(true);
+    this.hasError.set(false);
+
+    const searchParams = itemId 
+      ? { companyID, itemId, title, description } 
+      : { companyID, title, description };
+
+      console.log(searchParams);
 
     this.productService.getAllProducts(searchParams).subscribe({
       next: (data) => {
-        data && this.products.set(data)
+        this.isLoading.set(false);
+        if (data && data.length > 0) {
+          this.products.set(data);
+        } else {
+          this.products.set([]);
+          // Optional: Redirect to all products if none found
+          this.router.navigate(['/products']);
+        }
       },
-      error: () => {
-        // this.hasError.set(true);
-        // this.isLoading.set(false);
+      error: (error) => {
+        this.isLoading.set(false);
+        this.hasError.set(true);
+        console.error('Error loading products:', error);
       }
     });
   }

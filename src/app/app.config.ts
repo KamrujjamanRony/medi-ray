@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withRouterConfig, withViewTransitions } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
@@ -9,7 +9,10 @@ import { authInterceptor } from './services/auth/auth-interceptor';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes), provideClientHydration(withEventReplay()),
-    provideHttpClient(withFetch(),withInterceptors([authInterceptor]))
+    provideRouter(routes, withComponentInputBinding(), withViewTransitions(), withRouterConfig({
+      onSameUrlNavigation: 'reload'
+    })),
+    provideClientHydration(withEventReplay()),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor]))
   ]
 };

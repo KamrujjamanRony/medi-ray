@@ -12,6 +12,12 @@ export interface AboutM {
   description4?: string | null;
   title5?: string | null;
   description5?: string | null;
+  title6?: string | null;
+  description6?: string | null;
+  title7?: string | null;
+  description7?: string | null;
+  title8?: string | null;
+  description8?: string | null;
   imageUrl?: string | null;
 }
 
@@ -43,7 +49,8 @@ export interface ProductM {
     title: string;
     description: string;
     imageUrl: string;
-    category: string;
+    itemId: any;
+    itemDescription: string;
     brand: string;
     model: string;
     origin: string;

@@ -33,30 +33,30 @@
         </ul>
         }
       </div>
-      <!-- category -->
+      <!-- item -->
       <div>
-        @let category = form.category(); @let categoryError = form.category().invalid() &&
-        form.category().touched();
+        @let itemId = form.itemId(); @let itemIdError = form.itemId().invalid() &&
+        form.itemId().touched();
         <div class="relative pb-2">
           <select
-            [field]="form.category"
-            id="category"
+            [field]="form.itemId"
+            id="itemId"
             class="block px-2.5 pb-2.5 pt-4 w-full text-sm text-heading bg-transparent rounded-base border border-default-medium appearance-none focus:outline-none focus:ring-0 focus:border-brand peer"
           >
-            <option value="">Select a category</option>
+            <option value="">Select a item</option>
             @for (item of itemOptions(); track item.key) {
               <option [value]="item.key">{{ item.value }}</option>
             }
           </select>
           <label
-            for="category"
+            for="itemId"
             class="absolute text-sm text-body duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-left bg-neutral-primary px-2 peer-focus:px-2 peer-focus:text-fg-brand peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto start-1 capitalize"
-            >Product category</label
+            >Product item</label
           >
         </div>
-        @if (categoryError) {
+        @if (itemIdError) {
         <ul class="-mt-2 mb-2">
-          @for (error of category.errors(); track error) {
+          @for (error of itemId.errors(); track error) {
           <li class="text-sm text-red-600">{{ error.message }}</li>
           }
         </ul>
@@ -418,7 +418,10 @@
             <th scope="col" class="px-6 py-3 font-medium">Image</th>
             <th scope="col" class="px-6 py-3 font-medium">Images</th>
             <th scope="col" class="px-6 py-3 font-medium">Title</th>
-            <th scope="col" class="px-6 py-3 font-medium">Description</th>
+            <th scope="col" class="px-6 py-3 font-medium">brand</th>
+            <th scope="col" class="px-6 py-3 font-medium">model</th>
+            <th scope="col" class="px-6 py-3 font-medium">origin</th>
+            <th scope="col" class="px-6 py-3 font-medium">catalog</th>
             @if (isEdit() || isDelete()) {
             <th scope="col" class="px-6 py-3 font-medium">Action</th>
             }
@@ -448,7 +451,21 @@
               </div>
             </td>
             <td class="px-6 py-4">{{ item?.title }}</td>
-            <td class="px-6 py-4">{{ item?.description || '-' }}</td>
+            <td class="px-6 py-4">{{ item?.brand || '-' }}</td>
+            <td class="px-6 py-4">{{ item?.model || '-' }}</td>
+            <td class="px-6 py-4">{{ item?.origin || '-' }}</td>
+            <td class="px-6 py-4">
+              @if (item?.catalogURL) {
+              <a
+                [href]="item?.catalogURL"
+                target="_blank"
+                class="text-blue-600 hover:underline"
+                >View Catalog</a
+              >
+              } @else {
+              -
+              }
+            </td>
             <td class="px-6 py-4">
               @if (isEdit()) {
               <button

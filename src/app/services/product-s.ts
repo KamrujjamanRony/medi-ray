@@ -21,11 +21,19 @@ export class ProductS {
 
   getAllProducts(params: any): Observable<ProductM[]> {
     return from(
-      this.cache.getOrSet(
-        'all_products',
-        () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
-        5
-      )
+      params.itemId
+        ?
+        this.cache.getOrSet(
+          `company_${params.companyID}_item_${params.itemId}_products`,
+          () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
+          5
+        )
+        :
+        this.cache.getOrSet(
+          `company_${params.companyID}_products`,
+          () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
+          5
+        )
     );
   }
 
@@ -36,19 +44,6 @@ export class ProductS {
         async () => {
           const products = await lastValueFrom(this.http.get<ProductM[]>(this.url));
           return products.map(product => product.id.toString());
-        },
-        5
-      )
-    );
-  }
-
-  getCompanyProducts(companyID: number): Observable<ProductM[]> {
-    return from(
-      this.cache.getOrSet(
-        `company_${companyID}_products`,
-        async () => {
-          const products = await lastValueFrom(this.http.get<ProductM[]>(this.url));
-          return products.filter(product => product.companyID === companyID);
         },
         5
       )
@@ -71,7 +66,7 @@ export class ProductS {
     this.cache.clear('all_product_ids');
     this.cache.clear(`company_${updateProductRequest.companyID}_products`);
     this.cache.clear(`product_${id}`);
-    
+
     return this.http.put<ProductM>(`${this.url}/${id}`, updateProductRequest);
   }
 
@@ -96,5 +91,5 @@ export class ProductS {
     this.cache.clearByPattern(/^cache_company_/); // Matches "cache_company_123_products"
     this.cache.clearByPattern(/^cache_product_/); // Matches "cache_product_123"
   }
-  
+
 }
