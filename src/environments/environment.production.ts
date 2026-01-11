@@ -1,11 +1,12 @@
 export const environment = {
     production: true,
-    companyName: 'MediRay',
+    companyName: 'IBSC',
     companyCode: 1,
     whatsappNumber: '1712204095',
-    apiUrl: 'http://localhost:1001/p',
-    // apiUrl: 'http://api.mediray.supersoftbd.com/p',
-    ImageApi: 'http://localhost:1001/uploads/',
+    // apiUrl: 'http://localhost:1001/p',
+    apiUrl: 'https://api.mediray.supersoftbd.com/p',
+    ImageApi: 'https://api.mediray.supersoftbd.com/uploads/',
+    // ImageApi: 'http://localhost:1001/uploads/',
     emptyImg: 'https://www.mykite.in/kb/NoImageFound.jpg.png',
     emailConfig: {
         host: 'smtp.gmail.com',

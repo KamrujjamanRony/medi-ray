@@ -339,6 +339,7 @@ export class ProductList {
     request$.subscribe({
       next: () => {
         this.loadProducts();
+        console.log("clicked");
         this.formReset();
         this.isSubmitted.set(false);
       },

@@ -21,7 +21,7 @@
           [ngSrcset]="'640w, 1024w, 1920w'"
           sizes="100vw"
           [priority]="i === 0"
-          alt="Carousel Image"
+          [alt]="item.title || 'Carousel Image '+ $index"
           class="w-full h-full object-cover"
         />
 

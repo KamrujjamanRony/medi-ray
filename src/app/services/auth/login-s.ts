@@ -12,5 +12,5 @@ export class LoginS {
   login(data: any) {
     return this.http.post(`${environment.apiUrl}/Authentication/Login`, data);
   }
-  
+
 }

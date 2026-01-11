@@ -21,6 +21,7 @@ export class Products {
   private readonly renderer = inject(Renderer2);
   private readonly platformId = inject(PLATFORM_ID);
 
+  readonly categoryName = signal<any>("");
   readonly products = signal<ProductM[]>([]);
   readonly isLoading = signal<boolean>(true);
   readonly hasError = signal<boolean>(false);
@@ -41,8 +42,8 @@ export class Products {
       
       // If both parameters are present
       if (itemSlug) {
-        const categoryName = itemSlug.replace(/-/g, ' ');
-        this.setProductsSeoTags(categoryName);
+        this.categoryName.set(itemSlug.replace(/-/g, ' '));
+        this.setProductsSeoTags(this.categoryName());
       } 
       // If only ID is present (backward compatibility)
       if (itemId) {

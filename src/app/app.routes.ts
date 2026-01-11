@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { Admin } from './layouts/admin/admin';
 import { authGuard } from './services/auth/auth-guard';
 
 export const routes: Routes = [
@@ -42,7 +41,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    component: Admin,
+    loadComponent: () => import('./layouts/admin/admin').then(m => m.Admin),
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'carousel', pathMatch: 'full' },

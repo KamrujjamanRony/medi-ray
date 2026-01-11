@@ -144,6 +144,7 @@ export class ItemList {
     request$.subscribe({
       next: () => {
         this.loadItems();
+        console.log("clicked");
         this.formReset();
         this.isSubmitted.set(false);
       },

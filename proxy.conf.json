@@ -1,0 +1,14 @@
+{
+  "/p": {
+    "target": "http://api.mediray.supersoftbd.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/uploads": {
+    "target": "http://api.mediray.supersoftbd.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

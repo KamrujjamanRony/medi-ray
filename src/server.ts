@@ -5,11 +5,12 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
-import { join } from 'node:path';import path from 'path';
+import { join } from 'node:path'; import path from 'path';
 import fs from 'fs';
 import { Jimp } from 'jimp';
 import nodemailer from 'nodemailer';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import { environment } from './environments/environment';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
@@ -19,6 +20,18 @@ const angularApp = new AngularNodeAppEngine();
 
 // Middleware
 app.use(bodyParser.json());
+// server.ts
+app.use(cors({
+  origin: [
+    'http://mediray.supersoftbd.com',
+    'https://mediray.supersoftbd.com',
+    'http://api.mediny.superactfbid.com',
+    'https://api.mediny.superactfbid.com'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true  // If you're using cookies/auth tokens
+}));
 
 // Email configuration - use environment file
 const emailConfig = {
@@ -161,7 +174,7 @@ This message was sent from your website contact form.
 
   } catch (error: any) {
     console.error('Error sending email:', error);
-    
+
     // FIX: Use bracket notation for NODE_ENV
     return res.status(500).json({
       success: false,
@@ -214,7 +227,7 @@ app.get('/uploads/:filename', async (req, res) => {
     console.log(`Resizing ${filename} to width: ${width}`); // DEBUG LOG
 
     // Perform the resize
-    image.resize({ w: width }); 
+    image.resize({ w: width });
 
     const buffer = await image.getBuffer(mimeType as any);
 
@@ -223,7 +236,7 @@ app.get('/uploads/:filename', async (req, res) => {
       'Cache-Control': 'public, max-age=604800',
       'Vary': 'Accept' // Tells browser the content varies based on request
     });
-    
+
     res.send(buffer);
   } catch (err) {
     console.error('Processing failed:', err);
@@ -249,6 +262,7 @@ app.get('/uploads/:filename', async (req, res) => {
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
+    immutable: true,
     index: false,
     redirect: false,
   }),

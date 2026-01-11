@@ -55,7 +55,7 @@ export class Home {
 
     this.productService.getAllProducts(searchParams).subscribe({
       next: (data) => {
-        data && this.products.set(data.slice(0, 8))
+        data && this.products.set(data)
       },
       error: () => {
         // this.hasError.set(true);

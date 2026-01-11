@@ -1,13 +1,13 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Component, inject, Input, PLATFORM_ID, Renderer2, signal, SimpleChanges } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { ProductM } from '../../../utils/models';
 import { ProductS } from '../../../services/product-s';
+import { ProductCard } from "../../shared/product-card/product-card";
 
 @Component({
   selector: 'app-related-products',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, ProductCard],
   templateUrl: './related-products.html',
   styleUrl: './related-products.css',
 })

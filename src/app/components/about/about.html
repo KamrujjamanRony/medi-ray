@@ -20,19 +20,7 @@
 @else {
 <div class="min-h-screen bg-gray-50">
   <!-- Hero Section -->
-  <section class="relative py-20 overflow-hidden bg-linear-to-r from-blue-600 to-indigo-700">
-    <div class="absolute inset-0 bg-black opacity-50"></div>
-    <div class="relative px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-      <div class="text-center">
-        <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">
-          {{ about().heading || 'About Us' }}
-        </h1>
-        <p class="max-w-2xl mx-auto mt-3 text-xl text-gray-200 sm:mt-4">
-          {{ about().description || 'Learn more about our journey, values, and mission' }}
-        </p>
-      </div>
-    </div>
-  </section>
+   <app-page-title [about]="about().heading" />
 
   <!-- Main Content -->
   <div class="py-16 bg-white">

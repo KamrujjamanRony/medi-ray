@@ -5,10 +5,11 @@ import { AboutS } from '../../services/about-s';
 import { SeoManager } from '../../services/seo-manager';
 import { environment } from '../../../environments/environment';
 import { CommonModule, NgOptimizedImage } from '@angular/common';
+import { PageTitle } from "../shared/page-title/page-title";
 
 @Component({
   selector: 'app-about',
-  imports: [CommonModule, NgOptimizedImage],
+  imports: [CommonModule, NgOptimizedImage, PageTitle],
   templateUrl: './about.html',
   styleUrl: './about.css',
   providers: [
