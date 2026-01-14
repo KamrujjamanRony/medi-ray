@@ -1,12 +1,12 @@
-import { 
-  Component, 
-  inject, 
-  PLATFORM_ID, 
-  Renderer2, 
-  signal, 
-  computed, 
-  OnInit, 
-  OnDestroy 
+import {
+  Component,
+  inject,
+  PLATFORM_ID,
+  Renderer2,
+  signal,
+  computed,
+  OnInit,
+  OnDestroy
 } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -21,6 +21,7 @@ import { SeoManager } from '../../services/seo-manager';
 import { RelatedProducts } from './related-products/related-products';
 import { FlowbiteS } from '../../services/flowbite';
 import { ProductGallery } from "./product-gallery/product-gallery";
+import { RouteSeo } from '../../services/route-seo';
 
 @Component({
   selector: 'app-product-view',
@@ -31,7 +32,7 @@ import { ProductGallery } from "./product-gallery/product-gallery";
     RouterLink,
     RelatedProducts,
     ProductGallery
-],
+  ],
   templateUrl: './product-view.html',
   styleUrls: ['./product-view.css']
 })
@@ -39,6 +40,7 @@ export class ProductView implements OnInit, OnDestroy {
   // Services
   private productService = inject(ProductS);
   private seoManager = inject(SeoManager);
+  private seo = inject(RouteSeo);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private renderer = inject(Renderer2);
@@ -52,7 +54,7 @@ export class ProductView implements OnInit, OnDestroy {
   selectedImageIndex = signal<number>(0);
   quantity = signal<number>(1);
   isAddingToCart = signal<boolean>(false);
-  
+
   // Subscriptions
   private routeSub?: Subscription;
 
@@ -64,7 +66,7 @@ export class ProductView implements OnInit, OnDestroy {
   productImages = computed(() => {
     const product = this.product();
     if (!product) return [];
-    
+
     const images = [];
     // Add main image first
     if (product.imageUrl) {
@@ -74,7 +76,7 @@ export class ProductView implements OnInit, OnDestroy {
         thumbnail: `${this.ImageApi}${product.imageUrl}`
       });
     }
-    
+
     // Add additional images
     if (product.images && product.images.length > 0) {
       product.images.forEach((img, index) => {
@@ -85,7 +87,7 @@ export class ProductView implements OnInit, OnDestroy {
         });
       });
     }
-    
+
     return images;
   });
 
@@ -136,13 +138,13 @@ export class ProductView implements OnInit, OnDestroy {
           this.hasError.set(false);
           this.product.set(null);
           this.selectedImageIndex.set(0);
-          
+
           if (!productId) {
             this.hasError.set(true);
             this.isLoading.set(false);
             return [null];
           }
-          
+
           return this.productService.getProduct(productId);
         })
       )
@@ -172,18 +174,42 @@ export class ProductView implements OnInit, OnDestroy {
     const capitalizedTitle = productTitle.charAt(0).toUpperCase() + productTitle.slice(1);
     const brand = product.brand || 'Premium Brand';
     const description = product.description || `High-quality ${productTitle} from ${brand}`;
+    const image = product.imageUrl
+      ? `${this.ImageApi}${product.imageUrl}`
+      : undefined;
 
     const seoTitle = `${capitalizedTitle} - ${brand} | ${this.companyName}`;
     const seoDescription = `Discover ${productTitle} from ${brand}. ${description}. Available at ${this.companyName} with comprehensive specifications and catalog download.`;
 
+
+    /* ---------- Meta SEO ---------- */
     this.seoManager.updateSeoData({
       title: seoTitle,
       description: seoDescription,
       type: 'product',
-      image: product.imageUrl ? `${this.ImageApi}${product.imageUrl}` : undefined,
-      // keywords: this.generateKeywords(product)
+      image,
+      keywords: this.generateKeywords(product)
+    });
+
+    /* ---------- JSON-LD Product Schema ---------- */
+    this.seoManager.setSchema({
+      '@type': 'Product',
+      name: productTitle,
+      description: seoDescription,
+      image: image,
+      brand: {
+        '@type': 'Brand',
+        name: brand
+      },
+      offers: {
+        '@type': 'Offer',
+        // price: product.price,
+        priceCurrency: 'BDT',
+        availability: 'https://schema.org/InStock'
+      }
     });
   }
+
 
   /**
    * Generate SEO keywords from product data
@@ -195,8 +221,7 @@ export class ProductView implements OnInit, OnDestroy {
       product.model || '',
       product.origin || '',
       product.itemDescription || '',
-      'medical equipment',
-      'healthcare products',
+      ...environment.keywords,
       this.companyName
     ].filter(Boolean);
 
@@ -228,7 +253,7 @@ export class ProductView implements OnInit, OnDestroy {
     if (!product?.catalogURL) return;
 
     const catalogUrl = `${this.ImageApi}${product.catalogURL}`;
-    
+
     if (isPlatformBrowser(this.platformId)) {
       const link = document.createElement('a');
       link.href = catalogUrl;
@@ -269,7 +294,7 @@ export class ProductView implements OnInit, OnDestroy {
    */
   private showToast(message: string): void {
     if (!isPlatformBrowser(this.platformId)) return;
-    
+
     // Create toast element
     const toast = document.createElement('div');
     toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-fade-in-up z-50';
@@ -296,7 +321,7 @@ export class ProductView implements OnInit, OnDestroy {
 
     const subject = encodeURIComponent(`Inquiry about ${product.title}`);
     const body = encodeURIComponent(`Hello,\n\nI am interested in the following product:\n\nProduct: ${product.title}\nModel: ${product.model || 'N/A'}\nBrand: ${product.brand || 'N/A'}\n\nPlease contact me with more information.`);
-    
+
     if (isPlatformBrowser(this.platformId)) {
       window.location.href = `mailto:${environment.emailConfig.user}?subject=${subject}&body=${body}`;
     }

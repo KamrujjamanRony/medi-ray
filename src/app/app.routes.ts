@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './services/auth/auth-guard';
+import { environment } from '../environments/environment';
 
 export const routes: Routes = [
   {
@@ -12,10 +13,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./components/home/home').then(m => m.Home),
         data: {
+          title: `Home | ${environment.companyName}`,
+          description: 'Best products at best price',
+          keywords: 'shop, ecommerce, products',
           loc: '/',
           lastmod: '2026-01-12',
           changefreq: 'daily',
-          priority: '1.0'
+          priority: '1.0',
+          schema: {
+            '@type': 'WebSite',
+            name: environment.companyName,
+            url: environment.webUrl
+          }
         }
       },
       {
@@ -37,11 +46,25 @@ export const routes: Routes = [
         path: 'about',
         loadComponent: () =>
           import('./components/about/about').then(m => m.About),
+        data: {
+          seo: {
+            title: 'About Us',
+            description: 'Learn more about our company',
+            type: 'website'
+          }
+        }
       },
       {
         path: 'contact',
         loadComponent: () =>
           import('./components/contact/contact').then(m => m.Contact),
+        data: {
+          seo: {
+            title: 'Contact Us',
+            description: 'Contact Us for Any Query',
+            type: 'website'
+          }
+        }
       },
     ],
   },
@@ -90,7 +113,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-      loadComponent: () =>
+    loadComponent: () =>
       import('./components/admin/login/login').then(m => m.Login)
   }
 ];

@@ -3,4 +3,5 @@ export interface SeoData {
     description: string;
     image?: string;
     type?: 'website' | 'article' | 'product';
+    keywords?: string[] | string;
 }

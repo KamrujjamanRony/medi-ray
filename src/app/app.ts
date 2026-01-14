@@ -1,6 +1,8 @@
 import { Component, inject, PLATFORM_ID, Renderer2, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
+import { environment } from '../environments/environment';
+import { RouteSeo } from './services/route-seo';
 
 @Component({
   selector: 'app-root',
@@ -9,13 +11,13 @@ import { isPlatformBrowser } from '@angular/common';
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('medi-ray');
-  renderer = inject(Renderer2);
-  // 1. Inject PLATFORM_ID
+  protected readonly title = signal(environment.companyName);
+  private seo = inject(RouteSeo);
+  private renderer = inject(Renderer2);
   private platformId = inject(PLATFORM_ID);
 
-  ngOnInit() {
-    // 2. Wrap the browser-specific code in a platform check
+  constructor() {
+    this.seo.init();
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }
 }

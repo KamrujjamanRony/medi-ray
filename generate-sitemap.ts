@@ -1,8 +1,9 @@
+import { environment } from './src/environments/environment';
 import fs from 'fs';
 import axios from 'axios';
 
-const domain = 'https://mediray.supersoftbd.com';
-const API_URL = 'https://api.mediray.supersoftbd.com/p';
+const domain = environment.webUrl;
+const API_URL = environment.apiUrl;
 const lastMod = new Date().toISOString().split('T')[0];
 
 const staticRoutes = ['', '/products', '/about', '/contact'];
