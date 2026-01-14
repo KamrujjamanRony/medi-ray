@@ -134,8 +134,6 @@ export class ItemList {
       description: formValue.description,
       slItem: formValue.slItem ? Number(formValue.slItem) : null,
     };
-
-    console.log('Payload to send:', payload);
     
     const request$ = this.selectedItem()
       ? this.itemService.updateItem(this.selectedItem()!.id!, payload)
@@ -144,7 +142,6 @@ export class ItemList {
     request$.subscribe({
       next: () => {
         this.loadItems();
-        console.log("clicked");
         this.formReset();
         this.isSubmitted.set(false);
       },

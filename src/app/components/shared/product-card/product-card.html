@@ -16,7 +16,7 @@
       @if (product()!.imageUrl) {
         <img 
           [ngSrc]="product()!.imageUrl" 
-          [ngSrcset]="'640w, 1024w, 1920w'"
+          [ngSrcset]="'360w, 480w, 640w'"
           fill
           [alt]="product()!.title || 'Product image'"
           class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-4"

@@ -96,8 +96,10 @@
                 <img
                   [ngSrc]="ImageApi + product.imageUrl"
                   [alt]="product.title"
-                  [ngSrcset]="'640w, 1024w, 1920w'"
-                  fill
+                  width="64"
+                  height="64"
+                  [ngSrcset]="'64w, 128w, 256w'"
+                  loading="lazy"
                   class="w-16 h-16 object-cover rounded"
                 />
                 <div>
@@ -221,8 +223,10 @@
                   <img
                     [ngSrc]="ImageApi + product.imageUrl"
                     [alt]="product.title"
-                    [ngSrcset]="'640w, 1024w, 1920w'"
-                    fill
+                    width="64"
+                    height="64"
+                    [ngSrcset]="'64w, 128w, 256w'"
+                    loading="lazy"
                     class="w-16 h-16 object-cover rounded"
                   />
                   <div>

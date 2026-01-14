@@ -178,7 +178,6 @@ export class UsersComponent {
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(user: any) {
-    console.log('on click update button');
     this.selectedUser.set({...user, username: user.userName});
     this.loadTreeData(user.id);
 

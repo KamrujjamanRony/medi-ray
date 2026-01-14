@@ -156,8 +156,6 @@ export class MenuListComponent implements OnInit {
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
-    console.log('Form value:', this.form().value());
-    console.log('Selected permissions:', this.permissionsKey);
     
     if (this.form().valid()) {
       const formValue = this.form().value();
@@ -171,8 +169,6 @@ export class MenuListComponent implements OnInit {
         permissionsKey: this.getPermissionKeys(this.permissionsKey), // Convert to string[]
         postBy: formValue.postBy
       };
-
-      console.log('Payload to send:', payload);
 
       const request$ = this.selectedMenu()
         ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)

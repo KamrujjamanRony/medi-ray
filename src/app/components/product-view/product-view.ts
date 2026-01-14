@@ -241,33 +241,6 @@ export class ProductView implements OnInit, OnDestroy {
   }
 
   /**
-   * Add to cart functionality
-   */
-  addToCart(): void {
-    const product = this.product();
-    if (!product) return;
-
-    this.isAddingToCart.set(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Added to cart:', {
-        productId: product.id,
-        title: product.title,
-        quantity: this.quantity(),
-        price: 0 // Add price field to your model
-      });
-      
-      // Show success message
-      if (isPlatformBrowser(this.platformId)) {
-        this.showToast('Product added to cart successfully!');
-      }
-      
-      this.isAddingToCart.set(false);
-    }, 500);
-  }
-
-  /**
    * Share product
    */
   shareProduct(platform: 'facebook' | 'twitter' | 'linkedin' | 'whatsapp'): void {

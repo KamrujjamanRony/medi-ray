@@ -1,6 +1,6 @@
-import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, input } from '@angular/core';
+import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, inject, input, PLATFORM_ID } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { CommonModule, IMAGE_LOADER, ImageLoaderConfig, NgOptimizedImage } from '@angular/common';
+import { CommonModule, IMAGE_LOADER, ImageLoaderConfig, isPlatformBrowser, NgOptimizedImage } from '@angular/common';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { environment } from '../../../../environments/environment';
 import { CarouselM } from '../../../utils/models';
@@ -28,10 +28,23 @@ import { CarouselM } from '../../../utils/models';
   ],
 })
 export class CarouselComponent {
+  // 1. Inject PLATFORM_ID
+  private platformId = inject(PLATFORM_ID);
   slides = input<CarouselM[]>([]);
   faSpinner = faSpinner;
   ImageApi = environment.ImageApi;
-  // A computed value to decide if loop should be on
-  canLoop = computed(() => this.slides().length > 4);
+  isBrowser!: boolean;
+  // Decide if we have enough slides to support looping/autoplay
+  isInteractive = computed(() => this.slides().length > 1);
+  // to avoid the 'not enough slides' warning.
+  isLoopEnabled = computed(() => this.slides().length >= 3);
+  // If slides = [A, B], computedSlides becomes [A, B, A, B]
+computedSlides = computed(() => {
+  const s = this.slides();
+  return (s.length > 0 && s.length < 3) ? [...s, ...s] : s;
+});
+  constructor(){
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
 }

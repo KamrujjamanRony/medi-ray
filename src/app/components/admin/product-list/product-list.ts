@@ -59,7 +59,10 @@ export class ProductList {
   multiplePreviewUrls = signal<ImagePreview[]>([]);
 
   isLoading = signal(false);
-  hasError = signal(false);
+  error = signal({
+    message: '',
+    type: 'form'
+  });
 
   isView = signal(false);
   isInsert = signal(false);
@@ -67,7 +70,7 @@ export class ProductList {
   isDelete = signal(false);
 
   highlightedTr = signal<number>(-1);
-  isSubmitted = signal(false);
+  isSubmitting = signal(false);
 
   /* ---------------- COMPUTED ---------------- */
   filteredProductList = computed(() => {
@@ -150,7 +153,7 @@ export class ProductList {
 
   loadProducts(title = "", description = "", companyID = environment.companyCode) {
     this.isLoading.set(true);
-    this.hasError.set(false);
+    this.error.set({message: '', type: 'load'});
     const searchParams = { companyID, title, description }
 
     this.productService.getAllProducts(searchParams).subscribe({
@@ -159,7 +162,7 @@ export class ProductList {
         this.isLoading.set(false);
       },
       error: () => {
-        this.hasError.set(true);
+        this.error.set({message: 'Failed to load products.', type: 'load'});
         this.isLoading.set(false);
       }
     });
@@ -276,7 +279,8 @@ export class ProductList {
       return;
     }
 
-    this.isSubmitted.set(true);
+    this.isSubmitting.set(true);
+    this.error.set({message: '', type: 'form'});
 
     const formValue = this.form().value();
 
@@ -296,8 +300,6 @@ export class ProductList {
       images: formValue.images,
       relatedProducts: this.getRelatedProductKeys(this.relatedProducts),
     };
-
-    console.log('Payload to send:', payload);
     
     const formData = new FormData();
 
@@ -339,13 +341,12 @@ export class ProductList {
     request$.subscribe({
       next: () => {
         this.loadProducts();
-        console.log("clicked");
         this.formReset();
-        this.isSubmitted.set(false);
+        this.isSubmitting.set(false);
       },
       error: (error) => {
-        console.error('Error submitting form:', error);
-        this.isSubmitted.set(false);
+        this.error.set({message: error?.message || error?.error?.message || 'An error occurred during submission.', type: 'form'});
+        this.isSubmitting.set(false);
       }
     });
   }
@@ -462,11 +463,16 @@ onUpdate(product: ProductM) {
     this.selectedFiles.set([]);
     this.multiplePreviewUrls.set([]);
     
-    this.isSubmitted.set(false);
+    this.isSubmitting.set(false);
     this.form().reset();
     
     // Clear file inputs
     this.clearFileInput();
     this.clearMultipleFileInput();
+  }
+
+  closeError(e: Event) {
+    e.preventDefault();
+    this.error.set({message: '', type: 'form'});
   }
 }

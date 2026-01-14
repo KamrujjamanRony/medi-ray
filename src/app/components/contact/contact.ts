@@ -145,6 +145,7 @@ export class Contact implements OnInit {
     // Validate form
     if (!this.form().valid()) {
       console.log('Form is invalid:', this.form().errors());
+      alert(this.form().errors() || "Form is Invalid!")
       return;
     }
 
@@ -169,16 +170,16 @@ export class Contact implements OnInit {
       toEmail: contactInfo.email // Company contact email
     };
 
-    console.log('Sending contact form:', {
-      from: emailData.email,
-      to: emailData.toEmail,
-      subject: emailData.subject
-    });
+    // console.log('Sending contact form:', {
+    //   from: emailData.email,
+    //   to: emailData.toEmail,
+    //   subject: emailData.subject
+    // });
 
     // Send email
     this.contactService.sendContactEmail(emailData).subscribe({
       next: (response) => {
-        console.log('Email sent successfully:', response);
+        // console.log('Email sent successfully:', response);
         this.isSuccess.set(true);
         this.isSubmitted.set(false);
         this.formReset();

@@ -300,7 +300,7 @@
     (change)="onMainImageSelect($event)"
     class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
   />
-  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
+  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 700x700px).</p>
   
   <!-- Main Image Preview -->
   @if (previewUrl()) {
@@ -322,7 +322,7 @@
     multiple
     class="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body"
   />
-  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 800x400px).</p>
+  <p class="mt-1 text-sm text-gray-500" id="file_input_help">SVG, PNG, JPG or WEBP (MAX. 700x700px).</p>
   
   <!-- Multiple Images Preview -->
   @if (multiplePreviewUrls().length > 0) {
@@ -343,14 +343,58 @@
   }
 </div>
 
+      <!-- Error Message -->
+      @if (error().message && error().type === 'form') {
+      <div
+        class="mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md flex items-center justify-between relative"
+      >
+        <div class="text-red-600 dark:text-red-400 text-sm text-center">
+          {{ error().message }}
+        </div>
+        <button
+          (click)="closeError($event)"
+          class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-600 cursor-pointer"
+        >
+          <fa-icon [icon]="faXmark" class="w-5 h-5"></fa-icon>
+        </button>
+      </div>
+      }
+
       <div class="flex gap-2">
         <!-- Save -->
-        <input
+        <button
           type="submit"
-          [value]="selectedProduct() ? 'Update' : 'Save'"
-          [disabled]="form().invalid()"
-          class="text-gray-50 bg-linear-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-emerald-300 shadow-lg shadow-emerald-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full"
-        />
+          [disabled]="isSubmitting()"
+          class="text-gray-50 bg-linear-to-r from-emerald-400 via-emerald-500 to-emerald-600 hover:bg-linear-to-br focus:ring-1 focus:outline-none focus:ring-emerald-300 shadow-lg shadow-emerald-500/50 font-medium rounded text-sm px-5 py-2.5 text-center me-2 mb-2 h-10 w-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer"
+        >
+          @if (isSubmitting()) {
+          <span class="flex items-center justify-center">
+            <svg
+              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            Submitting Form...
+          </span>
+          } @else {
+          <span>{{ selectedProduct() ? 'Update' : 'Save' }}</span>
+          }
+        </button>
 
         <button
           type="button"
@@ -397,7 +441,7 @@
       }
 
       <!-- Error State -->
-      @else if (hasError()) {
+      @else if (error().message && error().type === 'load') {
       <p class="text-3xl font-bold text-center p-10 text-red-600">
         There was an error loading data.
       </p>

@@ -11,6 +11,12 @@ export const routes: Routes = [
         path: '',
         loadComponent: () =>
           import('./components/home/home').then(m => m.Home),
+        data: {
+          loc: '/',
+          lastmod: '2026-01-12',
+          changefreq: 'daily',
+          priority: '1.0'
+        }
       },
       {
         path: 'products',

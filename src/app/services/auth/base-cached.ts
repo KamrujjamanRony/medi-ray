@@ -7,7 +7,7 @@ interface CacheEntry<T> {
 
 export abstract class BaseCached {
   private cache = new Map<string, CacheEntry<any>>();
-  protected debug = true; // 🔥 toggle cache logs
+  protected debug = false; // 🔥 toggle cache logs
 
   protected getFromCache<T>(
     key: string,

@@ -38,7 +38,6 @@ export class Products {
     this.route.paramMap.subscribe(params => {
       const itemId = params.get('itemId');
       const itemSlug = params.get('itemSlug');
-      console.log(`itemId: ${itemId} and itemSlug: ${itemSlug}`);
       
       // If both parameters are present
       if (itemSlug) {
@@ -80,8 +79,6 @@ export class Products {
     const searchParams = itemId 
       ? { companyID, itemId, title, description } 
       : { companyID, title, description };
-
-      console.log(searchParams);
 
     this.productService.getAllProducts(searchParams).subscribe({
       next: (data) => {

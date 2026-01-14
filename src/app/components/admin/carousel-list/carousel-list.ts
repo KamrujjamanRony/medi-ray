@@ -163,7 +163,6 @@ export class CarouselList {
     formData.append('CompanyID', String(formValue.companyID));
     formData.append('Title', formValue.title);
     formData.append('Description', formValue.description ?? '');
-    console.log(this.selectedFile());
     // ✅ Append file correctly
     if (this.selectedFile()) {
       formData.append('ImageFile', this.selectedFile() as File);

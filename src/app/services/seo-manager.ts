@@ -1,3 +1,4 @@
+// seo-manager.ts
 import { DOCUMENT, inject, Injectable, REQUEST } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { SeoData } from '../utils/seo-model';
