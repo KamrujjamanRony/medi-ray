@@ -8,6 +8,7 @@ import { PermissionS } from '../../../services/auth/permission-s';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { ToastService } from '../../../utils/toast/toast.service';
 
 @Component({
   selector: 'app-contact-update',
@@ -22,6 +23,7 @@ export class ContactUpdate {
   /* ---------------- DI ---------------- */
   private contactService = inject(ContactS);
   private permissionService = inject(PermissionS);
+      private toast = inject(ToastService);
 
   /* ---------------- SIGNAL STATE ---------------- */
   contactData = signal<ContactM | null>(null);
@@ -82,7 +84,7 @@ export class ContactUpdate {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.contactService.getContact(environment.companyCode).subscribe({
+    this.contactService.get(environment.companyCode).subscribe({
       next: (data) => {
         this.contactData.set(data);
         this.updateForm(data);
@@ -116,7 +118,7 @@ export class ContactUpdate {
     event.preventDefault();
 
     if (!this.form().valid()) {
-      alert('Form is Invalid!');
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
       return;
     }
 
@@ -139,7 +141,7 @@ export class ContactUpdate {
 
     const id = this.contactData()?.id?.toString() || environment.companyCode.toString();
     
-    this.contactService.updateContact(id, payload).subscribe({
+    this.contactService.update(id, payload).subscribe({
       next: (response) => {
         this.contactData.set(response);
         this.updateForm(response);

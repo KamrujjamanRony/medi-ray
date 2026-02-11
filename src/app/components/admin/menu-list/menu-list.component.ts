@@ -1,18 +1,15 @@
 import { Component, ElementRef, inject, signal, computed, viewChild, viewChildren, OnInit } from '@angular/core';
 import { Field, form, required, validate, debounce } from '@angular/forms/signals';
-import { MenuS } from '../../../services/auth/menu-s';
 import { FormsModule } from '@angular/forms';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { MultiSelect } from '../../shared/multi-select/multi-select';
 import { MenuM } from '../../../utils/models';
 import { PermissionS } from '../../../services/auth/permission-s';
-
-// Define interface for multi-select options
-interface PermissionOption {
-  key: string;
-  value: string;
-}
+import { ToastService } from '../../../utils/toast/toast.service';
+import { ConfirmService } from '../../../utils/confirm/confirm.service';
+import { PermissionOptionM } from '../../../models/User';
+import { MenuS } from '../../../services/auth/menu-s';
 
 @Component({
   selector: 'app-menu-list',
@@ -25,15 +22,18 @@ export class MenuListComponent implements OnInit {
   faPencil = faPencil;
   faXmark = faXmark;
   faMagnifyingGlass = faMagnifyingGlass;
-  
+
   /* ---------------- DI ---------------- */
   private menuService = inject(MenuS);
   private permissionService = inject(PermissionS);
+  private toast = inject(ToastService);
+  private confirm = inject(ConfirmService);
+  readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
 
   /* ---------------- SIGNAL STATE ---------------- */
   menus = signal<MenuM[]>([]);
   searchQuery = signal('');
-  permissionsKey: PermissionOption[] = []; // Change to PermissionOption array
+  permissionsKey: PermissionOptionM[] = []; // Change to PermissionOption array
 
   filteredMenuList = computed(() => {
     const query = this.searchQuery().toLowerCase();
@@ -54,26 +54,25 @@ export class MenuListComponent implements OnInit {
     }))
   );
 
-  selectedMenu = signal<MenuM | null>(null);
+  selected = signal<MenuM | null>(null);
 
   isLoading = signal(false);
   hasError = signal(false);
+  isSubmitted = signal(false);
 
   isView = signal(false);
   isInsert = signal(false);
   isEdit = signal(false);
   isDelete = signal(false);
+  showList = signal(true);
 
   // Define permission options as array of objects
-  permissionOptions: PermissionOption[] = [ 
+  permissionOptions: PermissionOptionM[] = [
     { key: 'view', value: 'View' },
     { key: 'create', value: 'Create' },
     { key: 'edit', value: 'Edit' },
     { key: 'delete', value: 'Delete' },
   ];
-
-  readonly inputRefs = viewChildren<ElementRef>('inputRef');
-  readonly searchInput = viewChild.required<ElementRef<HTMLInputElement>>('searchInput');
 
   /* ---------------- FORM MODEL ---------------- */
   model = signal({
@@ -108,10 +107,6 @@ export class MenuListComponent implements OnInit {
   ngOnInit(): void {
     this.loadMenus();
     this.loadPermissions();
-
-    setTimeout(() => {
-      this.inputRefs()?.[0]?.nativeElement.focus();
-    }, 10);
   }
 
   /* ---------------- LOADERS ---------------- */
@@ -126,7 +121,7 @@ export class MenuListComponent implements OnInit {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.menuService.getAllMenu().subscribe({
+    this.menuService.search().subscribe({
       next: data => {
         this.menus.set((data as MenuM[]) ?? []);
         this.isLoading.set(false);
@@ -149,52 +144,56 @@ export class MenuListComponent implements OnInit {
   }
 
   // Convert PermissionOption[] to string[] (just keys)
-  getPermissionKeys(permissions: PermissionOption[]): string[] {
+  getPermissionKeys(permissions: PermissionOptionM[]): string[] {
     return permissions.map(p => p.key);
   }
 
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
-    
-    if (this.form().valid()) {
-      const formValue = this.form().value();
 
-      const payload = {
-        menuName: formValue.menuName,
-        parentMenuId: formValue.parentMenuId ? Number(formValue.parentMenuId) : null,
-        url: formValue.url,
-        isActive: formValue.isActive === 'true',
-        icon: formValue.icon,
-        permissionsKey: this.getPermissionKeys(this.permissionsKey), // Convert to string[]
-        postBy: formValue.postBy
-      };
-
-      const request$ = this.selectedMenu()
-        ? this.menuService.updateMenu(this.selectedMenu()!.id, payload)
-        : this.menuService.addMenu(payload);
-
-      request$.subscribe({
-        next: () => {
-          this.loadMenus();
-          this.formReset();
-        },
-        error: (error) => {
-          console.error('Error submitting form:', error);
-        }
-      });
-    } else {
-      alert("Form is Invalid!");
+    if (!this.form().valid()) {
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
+      return;
     }
+    const formValue = this.form().value();
+    this.isSubmitted.set(true);
+
+    const payload = {
+      menuName: formValue.menuName,
+      parentMenuId: formValue.parentMenuId ? Number(formValue.parentMenuId) : null,
+      url: formValue.url,
+      isActive: formValue.isActive === 'true',
+      icon: formValue.icon,
+      permissionsKey: this.getPermissionKeys(this.permissionsKey), // Convert to string[]
+      postBy: formValue.postBy
+    };
+
+    const request$ = this.selected()
+      ? this.menuService.update(this.selected()!.id, payload)
+      : this.menuService.add(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.loadMenus();
+        this.onToggleList();
+        this.toast.success('Saved successfully!', 'bottom-right', 5000);
+      },
+      error: (error) => {
+        this.toast.danger('Saved unsuccessful!', 'bottom-left', 3000);
+        console.error('Error submitting form:', error);
+        this.isSubmitted.set(false);
+      }
+    });
   }
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(menu: MenuM) {
-    this.selectedMenu.set(menu);
-    
+    this.selected.set(menu);
+
     // Convert string[] to PermissionOption[]
     if (menu.permissionsKey) {
-      this.permissionsKey = this.permissionOptions.filter(option => 
+      this.permissionsKey = this.permissionOptions.filter(option =>
         menu.permissionsKey!.includes(option.key)
       );
     } else {
@@ -211,18 +210,34 @@ export class MenuListComponent implements OnInit {
       icon: menu.icon ?? '',
       permissionsKey: menu.permissionsKey ?? []
     }));
+    this.showList.set(false);
 
     // Reset validation states
     this.form().reset();
   }
 
   /* ---------------- DELETE ---------------- */
-  onDelete(id: any) {
-    if (!confirm('Are you sure you want to delete?')) return;
-
-    this.menuService.deleteMenu(id).subscribe(() => {
-      this.menus.update(list => list.filter(m => m.id !== id));
+  async onDelete(id: any) {
+    const ok = await this.confirm.confirm({
+      message: 'Are you sure you want to delete this Menu?',
+      confirmText: "Yes, I'm sure",
+      cancelText: 'No, cancel',
+      variant: 'danger',
     });
+
+    if (ok) {
+      // Delete Menu
+      this.menuService.delete(id).subscribe({
+        next: () => {
+          this.menus.update(list => list.filter(i => i.id !== id));
+          this.toast.success('Menu deleted successfully!', 'bottom-right', 5000);
+        },
+        error: (error) => {
+        this.toast.danger('Menu deleted unsuccessful!', 'bottom-left', 3000);
+          console.error('Error deleting Menu:', error);
+        }
+      });
+    }
   }
 
   /* ---------------- RESET ---------------- */
@@ -237,10 +252,16 @@ export class MenuListComponent implements OnInit {
       permissionsKey: [],
       postBy: '',
     });
-    
+
     // Reset permissions
     this.permissionsKey = [];
-    this.selectedMenu.set(null);
+    this.selected.set(null);
+    this.isSubmitted.set(false);
     this.form().reset();
+  }
+
+  onToggleList() {
+    this.showList.update(s => !s);
+    this.formReset();
   }
 }

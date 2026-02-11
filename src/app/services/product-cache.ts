@@ -13,13 +13,13 @@ export class ProductCache {
   cache = inject(CacheS);
   url = `${environment.apiUrl}/Product`;
 
-  addProduct(model: FormData): Observable<ProductM> {
+  add(model: FormData): Observable<ProductM> {
     // Clear relevant cache entries
     this.cache.clear('all_products');
     return this.http.post<ProductM>(this.url, model);
   }
 
-  getAllProducts(params: any): Observable<ProductM[]> {
+  search(params: any): Observable<ProductM[]> {
     return from(
       params.itemId
         ?
@@ -37,20 +37,7 @@ export class ProductCache {
     );
   }
 
-  getAllProductsIds(): Observable<string[]> {
-    return from(
-      this.cache.getOrSet(
-        'all_product_ids',
-        async () => {
-          const products = await lastValueFrom(this.http.get<ProductM[]>(this.url));
-          return products.map(product => product.id.toString());
-        },
-        5
-      )
-    );
-  }
-
-  getProduct(id: string): Observable<ProductM> {
+  get(id: string): Observable<ProductM> {
     return from(
       this.cache.getOrSet(
         `product_${id}`,
@@ -60,7 +47,7 @@ export class ProductCache {
     );
   }
 
-  updateProduct(id: string, updateProductRequest: ProductM): Observable<ProductM> {
+  update(id: string, updateProductRequest: ProductM): Observable<ProductM> {
     // Clear specific cache entries
     this.cache.clear('all_products');
     this.cache.clear('all_product_ids');
@@ -70,7 +57,7 @@ export class ProductCache {
     return this.http.put<ProductM>(`${this.url}/${id}`, updateProductRequest);
   }
 
-  deleteProduct(id: string): Observable<ProductM> {
+  delete(id: string): Observable<ProductM> {
     return this.http.delete<ProductM>(`${this.url}/${id}`).pipe(
       map(response => {
         // Clear relevant cache

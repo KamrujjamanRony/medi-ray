@@ -1,17 +1,23 @@
-import {
-  AngularNodeAppEngine,
-  createNodeRequestHandler,
-  isMainModule,
-  writeResponseToNodeResponse,
-} from '@angular/ssr/node';
-import express from 'express';
-import { join } from 'node:path'; import path from 'path';
-import fs from 'fs';
-import { Jimp } from 'jimp';
-import nodemailer from 'nodemailer';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import { environment } from './environments/environment';
+const { AngularNodeAppEngine,createNodeRequestHandler,isMainModule,writeResponseToNodeResponse} = require('@angular/ssr/node');
+const express = require('express');
+const { join } = require('node:path'); const path = require('path');
+const fs = require('fs');
+const { Jimp } = require('jimp');
+const nodemailer = require('nodemailer');
+const bodyParser = require('body-parser');
+const compression = require('compression');
+const cors = require('cors');
+const { environment } = require('./environments/environment');
+// import { AngularNodeAppEngine,createNodeRequestHandler,isMainModule,writeResponseToNodeResponse} from '@angular/ssr/node';
+// import express from 'express';
+// import { join } from 'node:path'; import path from 'path';
+// import fs from 'fs';
+// import { Jimp } from 'jimp';
+// import nodemailer from 'nodemailer';
+// import bodyParser from 'body-parser';
+// import compression from 'compression';
+// import cors from 'cors';
+// import { environment } from './environments/environment';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -20,17 +26,22 @@ const angularApp = new AngularNodeAppEngine();
 
 // Middleware
 app.use(bodyParser.json());
+app.use(compression({
+  level: 6,           // balanced CPU / compression
+  threshold: 1024     // only compress >1KB
+}));
 // server.ts
 app.use(cors({
   origin: [
-    'http://mediray.supersoftbd.com',
+    'http://localhost:1012',
+    'http://localhost:3000',
+    'http://localhost:4200',
     'https://mediray.supersoftbd.com',
-    'http://api.mediny.superactfbid.com',
-    'https://api.mediny.superactfbid.com'
+    'https://api.mediray.supersoftbd.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true  // If you're using cookies/auth tokens
+  // credentials: true 
 }));
 
 // Email configuration - use environment file
@@ -55,7 +66,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Verify transporter connection
-transporter.verify((error, success) => {
+transporter.verify((error: any, success: any) => {
   if (error) {
     console.error('SMTP connection error:', error);
   } else {
@@ -64,7 +75,7 @@ transporter.verify((error, success) => {
 });
 
 // Email API endpoint
-app.post('/api/email/send-contact', async (req, res) => {
+app.post('/api/email/send-contact', async (req: any, res: any) => {
   try {
     const { name, email, subject, message, toEmail } = req.body;
 
@@ -185,7 +196,7 @@ This message was sent from your website contact form.
 });
 
 // Optional: Test email endpoint
-app.post('/api/email/test', async (req, res) => {
+app.post('/api/email/test', async (req: any, res: any) => {
   try {
     const testMailOptions = {
       from: emailConfig.from,
@@ -212,7 +223,7 @@ app.post('/api/email/test', async (req, res) => {
 });
 
 // Backend snippet
-app.get('/uploads/:filename', async (req, res) => {
+app.get('/uploads/:filename', async (req: any, res: any) => {
   const { filename } = req.params;
   const width = parseInt(req.query['w'] as string, 10);
   const filePath = path.join(process.cwd(), 'uploads', filename);
@@ -233,8 +244,8 @@ app.get('/uploads/:filename', async (req, res) => {
 
     res.set({
       'Content-Type': mimeType,
-      'Cache-Control': 'public, max-age=604800',
-      'Vary': 'Accept' // Tells browser the content varies based on request
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Vary': 'Accept'
     });
 
     res.send(buffer);
@@ -250,7 +261,7 @@ app.get('/uploads/:filename', async (req, res) => {
  *
  * Example:
  * ```ts
- * app.get('/api/{*splat}', (req, res) => {
+ * app.get('/api/{*splat}', (req: any, res: any) => {
  *   // Handle API request
  * });
  * ```
@@ -271,10 +282,10 @@ app.use(
 /**
  * Handle all other requests by rendering the Angular application.
  */
-app.use((req, res, next) => {
+app.use((req: any, res: any, next: any) => {
   angularApp
     .handle(req)
-    .then((response) =>
+    .then((response: any) =>
       response ? writeResponseToNodeResponse(response, res) : next(),
     )
     .catch(next);
@@ -285,8 +296,8 @@ app.use((req, res, next) => {
  * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
-  const port = process.env['PORT'] || 4000;
-  app.listen(port, (error) => {
+  const port = process.env['PORT'] || 3000;
+  app.listen(port, (error: any) => {
     if (error) {
       throw error;
     }

@@ -51,7 +51,7 @@ export class RelatedProducts {
     // In a real application, you would have an API endpoint for related products
     // For now, we'll fetch each product individually (not optimal for production)
     const productPromises = uniqueIds.map(id => 
-      this.productService.getProduct(id.toString()).toPromise()
+      this.productService.get(id.toString()).toPromise()
     );
 
     Promise.all(productPromises)

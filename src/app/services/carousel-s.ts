@@ -14,14 +14,14 @@ export class CarouselS {
   url = `${environment.apiUrl}/Carousel`;
 
   // No cache for create operations
-  addCarousel(model: CarouselM | FormData): Observable<CarouselM> {
+  add(model: CarouselM | FormData): Observable<CarouselM> {
     // Clear relevant cache entries
     this.cache.clear('carousel_all');
     return this.http.post<CarouselM>(this.url, model);
   }
 
   // Cached version
-  getAllCarousel(params: any): Observable<CarouselM[]> {
+  search(params: any): Observable<CarouselM[]> {
     return from(
       this.cache.getOrSet(
         'carousel_all',
@@ -32,7 +32,7 @@ export class CarouselS {
   }
 
   // Cached version
-  getCarousel(id: string): Observable<CarouselM> {
+  get(id: string): Observable<CarouselM> {
     return from(
       this.cache.getOrSet(
         `carousel_item_${id}`,
@@ -43,7 +43,7 @@ export class CarouselS {
   }
 
   // Clear cache on update
-  updateCarousel(id: string, updateCarouselRequest: CarouselM | FormData): Observable<CarouselM> {
+  update(id: string, updateCarouselRequest: CarouselM | FormData): Observable<CarouselM> {
     // Clear relevant cache entries
     this.cache.clear('carousel_all');
     
@@ -58,7 +58,7 @@ export class CarouselS {
   }
 
   // Clear cache on delete
-  deleteCarousel(id: string): Observable<CarouselM> {
+  delete(id: string): Observable<CarouselM> {
     return this.http.delete<CarouselM>(`${this.url}/${id}`).pipe(
       map(response => {
         // Clear relevant cache
@@ -74,15 +74,4 @@ export class CarouselS {
   refreshCarousel(): void {
     this.cache.clearByPattern(/^cache_carousel_/);
   }
-  
 }
-
-
-
-
-
-
-
-
-
-

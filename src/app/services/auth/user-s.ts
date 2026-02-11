@@ -15,13 +15,13 @@ export class UserS {
 
   /* ---------------- ADD ---------------- */
 
-  addUser(model: any): Observable<any> {
+  add(model: any): Observable<any> {
     this.clearUserCache();
     return this.http.post<any>(this.url, model, { withCredentials: true });
   }
 
   /* ---------------- GET ALL / SEARCH ---------------- */
-  getUser(query: any): Observable<any[]> {
+  search(query: any): Observable<any[]> {
     return from(
       this.cache.getOrSet(
         'users_all',
@@ -39,7 +39,7 @@ export class UserS {
   }
 
   /* ---------------- GET SINGLE ---------------- */
-  getUserById(id: string | number): Observable<any> {
+  get(id: string | number): Observable<any> {
     return from(
       this.cache.getOrSet(
         `user_${id}`,
@@ -53,7 +53,7 @@ export class UserS {
   }
 
   /* ---------------- UPDATE ---------------- */
-  updateUser(id: string | number, updateUserRequest: any): Observable<any> {
+  update(id: string | number, updateUserRequest: any): Observable<any> {
     const req = {
       ...updateUserRequest,
       userId: id
@@ -69,7 +69,7 @@ export class UserS {
   }
 
   /* ---------------- DELETE ---------------- */
-  deleteUser(id: string | number): Observable<any> {
+  delete(id: string | number): Observable<any> {
     this.clearUserCache(id);
 
     return this.http

@@ -1,18 +1,12 @@
-import {
-  Component,
-  inject,
-  PLATFORM_ID,
-  Renderer2,
-  signal,
-  computed,
-  OnInit,
-  OnDestroy
-} from '@angular/core';
+// product-view.ts
+import { faWhatsapp, faFacebook, faLinkedin, faTwitter } from '@fortawesome/free-brands-svg-icons';
+import { Component, inject, PLATFORM_ID, Renderer2, signal, computed, OnInit, OnDestroy} from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 import { environment } from '../../../environments/environment';
 import { ProductM } from '../../utils/models';
@@ -21,28 +15,23 @@ import { SeoManager } from '../../services/seo-manager';
 import { RelatedProducts } from './related-products/related-products';
 import { FlowbiteS } from '../../services/flowbite';
 import { ProductGallery } from "./product-gallery/product-gallery";
-import { RouteSeo } from '../../services/route-seo';
 
 @Component({
   selector: 'app-product-view',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    RelatedProducts,
-    ProductGallery
-  ],
+  imports: [CommonModule, FontAwesomeModule, FormsModule, RouterLink, RelatedProducts, ProductGallery],
   templateUrl: './product-view.html',
   styleUrls: ['./product-view.css']
 })
 export class ProductView implements OnInit, OnDestroy {
+  faFacebook = faFacebook;
+  faTwitter = faTwitter;
+  faLinkedin = faLinkedin;
+  faWhatsapp = faWhatsapp;
   // Services
   private productService = inject(ProductS);
   private seoManager = inject(SeoManager);
-  private seo = inject(RouteSeo);
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
   private renderer = inject(Renderer2);
   private flowbiteService = inject(FlowbiteS);
   private platformId = inject(PLATFORM_ID);
@@ -145,7 +134,7 @@ export class ProductView implements OnInit, OnDestroy {
             return [null];
           }
 
-          return this.productService.getProduct(productId);
+          return this.productService.get(productId);
         })
       )
       .subscribe({
@@ -229,23 +218,6 @@ export class ProductView implements OnInit, OnDestroy {
   }
 
   /**
-   * Change selected image
-   */
-  selectImage(index: number): void {
-    this.selectedImageIndex.set(index);
-  }
-
-  /**
-   * Handle quantity change
-   */
-  changeQuantity(amount: number): void {
-    const newQuantity = this.quantity() + amount;
-    if (newQuantity >= 1 && newQuantity <= 100) {
-      this.quantity.set(newQuantity);
-    }
-  }
-
-  /**
    * Download catalog
    */
   downloadCatalog(): void {
@@ -277,7 +249,6 @@ export class ProductView implements OnInit, OnDestroy {
     const url = encodeURIComponent(window.location.href);
     const title = encodeURIComponent(product.title || '');
     const description = encodeURIComponent(product.description || '');
-    const image = encodeURIComponent(`${this.ImageApi}${product.imageUrl}`);
 
     const shareUrls = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
@@ -287,6 +258,18 @@ export class ProductView implements OnInit, OnDestroy {
     };
 
     window.open(shareUrls[platform], '_blank', 'noopener,noreferrer');
+  }
+
+  /**
+   * Generate slug for URL
+   */
+  private generateSlug(text: string | null): string {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
   }
 
   /**
@@ -310,32 +293,5 @@ export class ProductView implements OnInit, OnDestroy {
         }
       }, 300);
     }, 3000);
-  }
-
-  /**
-   * Contact about product
-   */
-  contactAboutProduct(): void {
-    const product = this.product();
-    if (!product) return;
-
-    const subject = encodeURIComponent(`Inquiry about ${product.title}`);
-    const body = encodeURIComponent(`Hello,\n\nI am interested in the following product:\n\nProduct: ${product.title}\nModel: ${product.model || 'N/A'}\nBrand: ${product.brand || 'N/A'}\n\nPlease contact me with more information.`);
-
-    if (isPlatformBrowser(this.platformId)) {
-      window.location.href = `mailto:${environment.emailConfig.user}?subject=${subject}&body=${body}`;
-    }
-  }
-
-  /**
-   * Generate slug for URL
-   */
-  private generateSlug(text: string | null): string {
-    if (!text) return '';
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
   }
 }

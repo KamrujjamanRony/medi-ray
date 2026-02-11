@@ -38,7 +38,7 @@ export class Home {
     // this.hasError.set(false);
     const searchParams = {companyID, title, description}
 
-    this.carouselService.getAllCarousel(searchParams).subscribe({
+    this.carouselService.search(searchParams).subscribe({
       next: (data) => {
         data && this.carousels.set(data);
         // this.isLoading.set(false);
@@ -53,7 +53,7 @@ export class Home {
   loadProducts(title = "", description = "", companyID = environment.companyCode) {
     const searchParams = { companyID, title, description }
 
-    this.productService.getAllProducts(searchParams).subscribe({
+    this.productService.search(searchParams).subscribe({
       next: (data) => {
         data && this.products.set(data)
       },

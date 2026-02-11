@@ -7,6 +7,8 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { Field, form, required, validate, debounce } from '@angular/forms/signals';
 import { PermissionS } from '../../../services/auth/permission-s';
+import { ToastService } from '../../../utils/toast/toast.service';
+import { ConfirmService } from '../../../utils/confirm/confirm.service';
 
 @Component({
   selector: 'app-carousel-list',
@@ -31,6 +33,8 @@ export class CarouselList {
   /* ---------------- DI ---------------- */
   private carouselService = inject(CarouselS);
   private permissionService = inject(PermissionS);
+  private toast = inject(ToastService);
+  private confirm = inject(ConfirmService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   imgURL = environment.ImageApi;
   emptyImg = environment.emptyImg;
@@ -39,7 +43,7 @@ export class CarouselList {
   carousels = signal<CarouselM[]>([]);
   searchQuery = signal('');
 
-  filteredCarouselList = computed(() => {
+  filteredList = computed(() => {
     const query = this.searchQuery().toLowerCase();
 
     return this.carousels()
@@ -51,15 +55,12 @@ export class CarouselList {
       .reverse();
   });
 
-  selectedCarousel = signal<CarouselM | null>(null);
+  selected = signal<CarouselM | null>(null);
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
 
   isLoading = signal(false);
-  error = signal({
-    message: '',
-    type: 'form'
-  });
+  hasError = signal(false);
 
   isView = signal(false);
   isInsert = signal(false);
@@ -67,7 +68,8 @@ export class CarouselList {
   isDelete = signal(false);
 
   highlightedTr = signal<number>(-1);
-  isSubmitting = signal(false);
+  isSubmitted = signal(false);
+  showList = signal(true);
 
   /* ---------------- FORM MODEL ---------------- */
   model = signal({
@@ -102,16 +104,16 @@ export class CarouselList {
 
   loadCarousels(title = "", description = "", companyID = environment.companyCode) {
     this.isLoading.set(true);
-    this.error.set({message: '', type: 'load'});
-    const searchParams = {companyID, title, description}
+    this.hasError.set(false);
+    const searchParams = { companyID, title, description }
 
-    this.carouselService.getAllCarousel(searchParams).subscribe({
+    this.carouselService.search(searchParams).subscribe({
       next: (data) => {
         this.carousels.set(data);
         this.isLoading.set(false);
       },
       error: () => {
-        this.error.set({message: 'Failed to load carousels.', type: 'load'});
+        this.hasError.set(true);
         this.isLoading.set(false);
       }
     });
@@ -150,12 +152,12 @@ export class CarouselList {
     event.preventDefault();
 
     if (!this.form().valid()) {
-      alert('Form is Invalid!');
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
       return;
     }
 
-    this.isSubmitting.set(true);
-    this.error.set({message: '', type: 'form'});
+
+    this.isSubmitted.set(true);
 
     const formValue = this.form().value();
     const formData = new FormData();
@@ -163,24 +165,27 @@ export class CarouselList {
     formData.append('CompanyID', String(formValue.companyID));
     formData.append('Title', formValue.title);
     formData.append('Description', formValue.description ?? '');
+    formData.append('ImageUrl', formValue.imageUrl ?? '');
     // ✅ Append file correctly
     if (this.selectedFile()) {
       formData.append('ImageFile', this.selectedFile() as File);
     }
 
-    const request$ = this.selectedCarousel()
-      ? this.carouselService.updateCarousel(this.selectedCarousel()!.id, formData)
-      : this.carouselService.addCarousel(formData);
+
+    const request$ = this.selected()
+      ? this.carouselService.update(this.selected()!.id, formData)
+      : this.carouselService.add(formData);
 
     request$.subscribe({
       next: () => {
         this.loadCarousels();
-        this.formReset();
-        this.isSubmitting.set(false);
+        this.onToggleList();
+        this.toast.success('Saved successfully!', 'bottom-right', 5000);
       },
       error: (error) => {
-        this.isSubmitting.set(false);
-        this.error.set({message: error?.message || error?.error?.message || 'An error occurred during submission.', type: 'form'});
+        this.isSubmitted.set(false);
+        console.error(error?.message || error?.error?.message || 'An error occurred during submission.');
+        this.toast.danger('Saved unsuccessful!', 'bottom-left', 3000);
       }
     });
   }
@@ -188,22 +193,25 @@ export class CarouselList {
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(carousel: CarouselM) {
-    this.selectedCarousel.set(carousel);
+    this.selected.set(carousel);
 
     this.model.update(current => ({
       ...current,
       title: carousel.title,
       description: carousel.description ?? '',
       companyID: carousel.companyID,
+      imageUrl: carousel.imageUrl,
     }));
 
     this.form().reset();
-
-    this.previewUrl.set(
-      carousel.imageUrl
-        ? `${environment.apiUrl}/uploads/${carousel.imageUrl}`
-        : null
-    );
+    // Set main image preview
+    if (carousel.imageUrl) {
+      this.previewUrl.set(
+        this.imgURL ? `${this.imgURL}${carousel.imageUrl}` : carousel.imageUrl
+      );
+    } else {
+      this.previewUrl.set(null);
+    }
 
     this.selectedFile.set(null);
 
@@ -211,17 +219,33 @@ export class CarouselList {
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
     }
+    this.showList.set(false);
   }
 
 
 
   /* ---------------- DELETE ---------------- */
-  onDelete(id: any) {
-    if (!confirm('Are you sure you want to delete this carousel?')) return;
-
-    this.carouselService.deleteCarousel(id).subscribe(() => {
-      this.carousels.update(list => list.filter(c => c.id !== id));
+  async onDelete(id: any) {
+    const ok = await this.confirm.confirm({
+      message: 'Are you sure you want to delete this Carousel?',
+      confirmText: "Yes, I'm sure",
+      cancelText: 'No, cancel',
+      variant: 'danger',
     });
+
+    if (ok) {
+      // Delete Carousel
+      this.carouselService.delete(id).subscribe({
+        next: () => {
+          this.carousels.update(list => list.filter(c => c.id !== id));
+          this.toast.success('Carousel deleted successfully!', 'bottom-right', 5000);
+        },
+        error: (error) => {
+          this.toast.danger('Carousel deleted unsuccessful!', 'bottom-left', 3000);
+          console.error('Error deleting Carousel:', error);
+        }
+      });
+    }
   }
 
   /* ---------------- RESET ---------------- */
@@ -232,12 +256,12 @@ export class CarouselList {
       companyID: environment.companyCode,
       imageFile: '',
       imageUrl: '',
-    });   
+    });
 
-    this.selectedCarousel.set(null);
+    this.selected.set(null);
     this.selectedFile.set(null);
     this.previewUrl.set(null);
-    this.isSubmitting.set(false);
+    this.isSubmitted.set(false);
 
     this.form().reset();
     this.clearFileInput();
@@ -250,6 +274,10 @@ export class CarouselList {
 
   closeError(e: Event) {
     e.preventDefault();
-    this.error.set({message: '', type: 'form'});
+  }
+
+  onToggleList() {
+    this.showList.update(s => !s);
+    this.formReset();
   }
 }

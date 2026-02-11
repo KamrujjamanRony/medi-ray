@@ -8,7 +8,7 @@ export class CacheS {
   private transferState = inject(TransferState);
   // 1. Inject PLATFORM_ID
   private platformId = inject(PLATFORM_ID);
-  
+
   // Simple signal cache store
   private cache = signal<Map<string, { data: any; timestamp: number }>>(new Map());
 
@@ -17,8 +17,15 @@ export class CacheS {
     const cacheKey = `cache_${key}`;
     const now = Date.now();
     const ttlMs = ttlMinutes * 60 * 1000;
-    
+
     // Check server transfer state (SSR)
+    if (isPlatformServer(this.platformId)) {
+      const stateKey = makeStateKey<T>(cacheKey);
+      if (this.transferState.hasKey(stateKey)) {
+        return this.transferState.get(stateKey, null as any);
+      }
+    }
+    
     if (isPlatformServer(this.platformId)) {
       const stateKey = makeStateKey<T>(cacheKey);
       const data = await fetchFn();
@@ -26,13 +33,13 @@ export class CacheS {
       this.cache.update(map => new Map(map.set(cacheKey, { data, timestamp: now })));
       return data;
     }
-    
+
     // Check browser memory cache
     const cached = this.cache().get(cacheKey);
     if (cached && (now - cached.timestamp < ttlMs)) {
       return cached.data;
     }
-    
+
     // Check browser transfer state
     const stateKey = makeStateKey<T>(cacheKey);
     const transferred = this.transferState.get(stateKey, null as any);
@@ -41,7 +48,7 @@ export class CacheS {
       this.cache.update(map => new Map(map.set(cacheKey, { data: transferred, timestamp: now })));
       return transferred;
     }
-    
+
     // Fetch and cache
     const data = await fetchFn();
     this.cache.update(map => new Map(map.set(cacheKey, { data, timestamp: now })));
@@ -75,5 +82,5 @@ export class CacheS {
   clearAll(): void {
     this.cache.set(new Map());
   }
-  
+
 }

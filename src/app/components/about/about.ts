@@ -35,7 +35,7 @@ export class About implements OnInit {
 
   ngOnInit() {
     this.setProductsSeoTags();
-    this.aboutService.getAbout(environment.companyCode).subscribe(data => data && this.about.set(data));
+    this.aboutService.get(environment.companyCode).subscribe(data => data && this.about.set(data));
     isPlatformBrowser(this.platformId) && this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
   }
 

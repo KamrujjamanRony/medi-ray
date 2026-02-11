@@ -49,7 +49,7 @@ export const routes: Routes = [
         data: {
           seo: {
             title: 'About Us',
-            description: 'Learn more about our company',
+            description: 'Learn more about our company, mission, and values',
             type: 'website'
           }
         }
@@ -60,8 +60,8 @@ export const routes: Routes = [
           import('./components/contact/contact').then(m => m.Contact),
         data: {
           seo: {
-            title: 'Contact Us',
-            description: 'Contact Us for Any Query',
+            title: 'Contact Us - Get in Touch',
+            description: 'Get in touch with us for any inquiries or support. We are here to help you with your needs.',
             type: 'website'
           }
         }

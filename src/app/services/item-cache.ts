@@ -14,14 +14,14 @@ export class ItemCache {
   url = `${environment.apiUrl}/Item`;
 
   // Create new item
-  addItem(item: ItemM | FormData): Observable<ItemM> {
+  add(item: ItemM | FormData): Observable<ItemM> {
     // Clear relevant cache entries
     this.cache.clear('item_all');
     return this.http.post<ItemM>(this.url, item);
   }
 
   // Get all items (cached)
-  getAllItems(params: any): Observable<ItemM[]> {
+  search(params: any): Observable<ItemM[]> {
     return from(
       this.cache.getOrSet(
         'item_all',
@@ -32,7 +32,7 @@ export class ItemCache {
   }
 
   // Get single item by ID (cached)
-  getItem(id: number): Observable<ItemM> {
+  get(id: number): Observable<ItemM> {
     return from(
       this.cache.getOrSet(
         `item_${id}`,
@@ -43,7 +43,7 @@ export class ItemCache {
   }
 
   // Update item
-  updateItem(id: number, itemData: ItemM | FormData): Observable<ItemM> {
+  update(id: number, itemData: ItemM | FormData): Observable<ItemM> {
     // Clear relevant cache entries
     this.cache.clear('item_all');
     
@@ -58,7 +58,7 @@ export class ItemCache {
   }
 
   // Delete item
-  deleteItem(id: number): Observable<ItemM> {
+  delete(id: number): Observable<ItemM> {
     return this.http.delete<ItemM>(`${this.url}/${id}`).pipe(
       map(response => {
         // Clear relevant cache

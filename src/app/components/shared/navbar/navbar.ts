@@ -162,7 +162,7 @@ export class Navbar implements OnInit, OnDestroy {
   }
 
   loadItems(companyID = environment.companyCode) {
-    this.itemService.getAllItems({ companyID }).subscribe({
+    this.itemService.search({ companyID }).subscribe({
       next: (data) => {
         this.items.set(data);
       },
@@ -178,7 +178,7 @@ export class Navbar implements OnInit, OnDestroy {
       const params = { companyID: environment.companyCode };
       // Convert the cached observable to a promise
       const products = await firstValueFrom(
-        this.productService.getAllProducts(params)
+        this.productService.search(params)
       );
       this.products.set(products.slice(0, 8));
     } catch (error) {

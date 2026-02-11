@@ -14,13 +14,13 @@ export class MenuS {
   private readonly url = `${environment.apiUrl}/Menu`;
 
   /* ---------------- ADD ---------------- */
-  addMenu(model: any): Observable<any> {
+  add(model: any): Observable<any> {
     this.clearMenuCache();
     return this.http.post<any>(this.url, model);
   }
 
   /* ---------------- GET ALL ---------------- */
-  getAllMenu(): Observable<any[]> {
+  search(): Observable<any[]> {
     return from(
       this.cache.getOrSet(
         'menus_all',
@@ -34,7 +34,7 @@ export class MenuS {
   }
 
   /* ---------------- GET SINGLE ---------------- */
-  getMenu(id: number | string): Observable<any> {
+  get(id: number | string): Observable<any> {
     return from(
       this.cache.getOrSet(
         `menu_${id}`,
@@ -49,7 +49,7 @@ export class MenuS {
 
   /* ---------------- UPDATE ---------------- */
 
-  updateMenu(id: number | string, updateRequest: any): Observable<any> {
+  update(id: number | string, updateRequest: any): Observable<any> {
     this.clearMenuCache(id);
     return this.http.put<any>(
       `${this.url}/${id}`,
@@ -58,7 +58,7 @@ export class MenuS {
   }
 
   /* ---------------- DELETE ---------------- */
-  deleteMenu(id: number | string): Observable<any> {
+  delete(id: number | string): Observable<any> {
     this.clearMenuCache(id);
     return this.http.delete<any>(`${this.url}/${id}`).pipe(
       map(res => {

@@ -80,7 +80,7 @@ export class Products {
       ? { companyID, itemId, title, description } 
       : { companyID, title, description };
 
-    this.productService.getAllProducts(searchParams).subscribe({
+    this.productService.search(searchParams).subscribe({
       next: (data) => {
         this.isLoading.set(false);
         if (data && data.length > 0) {

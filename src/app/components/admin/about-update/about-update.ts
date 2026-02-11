@@ -87,7 +87,7 @@ export class AboutUpdate {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.aboutService.getAbout(environment.companyCode).subscribe({
+    this.aboutService.get(environment.companyCode).subscribe({
       next: (data) => {
         this.aboutData.set(data);
         this.updateForm(data);
@@ -205,7 +205,7 @@ export class AboutUpdate {
 
     const id = this.aboutData()?.id?.toString() || environment.companyCode.toString();
 
-    this.aboutService.updateAbout(id, formData).subscribe({
+    this.aboutService.update(id, formData).subscribe({
       next: (response) => {
         this.aboutData.set(response);
         this.updateForm(response);

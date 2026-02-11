@@ -14,7 +14,7 @@ export class AboutCache {
   url = `${environment.apiUrl}/AboutUs`;
 
   // Cached version
-  getAbout(id: any = environment.companyCode): Observable<AboutM> {
+  get(id: any = environment.companyCode): Observable<AboutM> {
     return from(
       this.cache.getOrSet(
         `about_item_${id}`,
@@ -25,7 +25,7 @@ export class AboutCache {
   }
 
   // Clear cache on update
-  updateAbout(id: string, updateAboutRequest: AboutM | FormData): Observable<AboutM> {
+  update(id: string, updateAboutRequest: AboutM | FormData): Observable<AboutM> {
     // Clear relevant cache entries
     this.cache.clear('about_all');
     

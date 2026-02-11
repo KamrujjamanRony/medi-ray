@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
 import { ProductM } from '../utils/models';
-import { from, lastValueFrom, map, Observable } from 'rxjs';
+import { from, lastValueFrom, map, Observable, tap } from 'rxjs';
 import { CacheS } from './cache-s';
 
 @Injectable({
@@ -13,44 +13,32 @@ export class ProductS {
   cache = inject(CacheS);
   url = `${environment.apiUrl}/Product`;
 
-  addProduct(model: FormData): Observable<ProductM> {
-    // Clear relevant cache entries
-    this.refreshProducts();
-    return this.http.post<ProductM>(this.url, model);
-  }
-
-  getAllProducts(params: any): Observable<ProductM[]> {
-    return from(
-      params.itemId
-        ?
-        this.cache.getOrSet(
-          `company_${params.companyID}_item_${params.itemId}_products`,
-          () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
-          5
-        )
-        :
-        this.cache.getOrSet(
-          `company_${params.companyID}_products`,
-          () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
-          5
-        )
+  add(model: FormData): Observable<ProductM> {
+    return this.http.post<ProductM>(this.url, model).pipe(
+      tap((newProduct) => {
+        // Clear relevant cache entries after successful creation
+        this.cache.clearByPattern(/^company_.*_products$/); // Clear all company product lists
+        this.cache.clear('all_products');
+        this.cache.clear('all_product_ids');
+      })
     );
   }
 
-  getAllProductsIds(): Observable<string[]> {
+  search(params: any): Observable<ProductM[]> {
+    const cacheKey = params.itemId
+      ? `company_${params.companyID}_item_${params.itemId}_products`
+      : `company_${params.companyID}_products`;
+
     return from(
       this.cache.getOrSet(
-        'all_product_ids',
-        async () => {
-          const products = await lastValueFrom(this.http.get<ProductM[]>(this.url));
-          return products.map(product => product.id.toString());
-        },
+        cacheKey,
+        () => lastValueFrom(this.http.post<ProductM[]>(this.url + "/Search", params)),
         5
       )
     );
   }
 
-  getProduct(id: string): Observable<ProductM> {
+  get(id: string): Observable<ProductM> {
     return from(
       this.cache.getOrSet(
         `product_${id}`,
@@ -60,37 +48,54 @@ export class ProductS {
     );
   }
 
-  updateProduct(id: string, updateProductRequest: ProductM): Observable<ProductM> {
-    // Clear specific cache entries
-    this.cache.clear('all_products');
-    this.cache.clear('all_product_ids');
-    this.cache.clear(`company_${updateProductRequest.companyID}_products`);
-    this.cache.clear(`product_${id}`);
-    this.refreshProducts();
-
-    return this.http.put<ProductM>(`${this.url}/${id}`, updateProductRequest);
-  }
-
-  deleteProduct(id: string): Observable<ProductM> {
-    return this.http.delete<ProductM>(`${this.url}/${id}`).pipe(
-      map(response => {
-        // Clear relevant cache
-        this.cache.clear('all_products');
-        this.cache.clear('all_product_ids');
-        // Use pattern to clear company caches (since we don't know which company)
-        this.cache.clearByPattern(/^cache_company_/);
-        this.cache.clear(`product_${id}`);
-        return response;
+  update(id: string, updateProductRequest: ProductM): Observable<ProductM> {
+    return this.http.put<ProductM>(`${this.url}/${id}`, updateProductRequest).pipe(
+      tap((updatedProduct) => {
+        // Clear all relevant cache entries after update
+        this.clearProductCaches(updatedProduct.companyID.toString(), id);
       })
     );
   }
 
-  // Manual cache refresh
-  refreshProducts(): void {
-    this.cache.clear('all_products');
-    this.cache.clear('all_product_ids');
-    this.cache.clearByPattern(/^cache_company_/); // Matches "cache_company_123_products"
-    this.cache.clearByPattern(/^cache_product_/); // Matches "cache_product_123"
+  delete(id: string, companyId?: string): Observable<ProductM> {
+    return this.http.delete<ProductM>(`${this.url}/${id}`).pipe(
+      tap(() => {
+        // If companyId is not provided in params, we need to clear all company caches
+        if (companyId) {
+          this.clearProductCaches(companyId, id);
+        } else {
+          // If no companyId provided, clear all product-related caches
+          this.refreshProducts();
+        }
+      })
+    );
   }
 
+  // Helper method to clear all related caches
+  private clearProductCaches(companyId: string, productId: string): void {
+    // Clear product-specific cache
+    this.cache.clear(`product_${productId}`);
+    
+    // Clear company product lists
+    this.cache.clear(`company_${companyId}_products`);
+    this.cache.clearByPattern(new RegExp(`^company_${companyId}_item_.*_products$`));
+    
+    // Clear global product lists
+    this.cache.clear('all_products');
+    this.cache.clear('all_product_ids');
+  }
+
+  // Manual cache refresh
+  refreshProducts(): void {
+    this.cache.clearByPattern(/^company_.*_products$/); // Clear all company product lists
+    this.cache.clearByPattern(/^product_/); // Clear all product details
+    this.cache.clear('all_products');
+    this.cache.clear('all_product_ids');
+  }
+
+  // Optional: Clear cache for a specific company
+  clearCompanyProducts(companyId: string): void {
+    this.cache.clear(`company_${companyId}_products`);
+    this.cache.clearByPattern(new RegExp(`^company_${companyId}_item_.*_products$`));
+  }
 }

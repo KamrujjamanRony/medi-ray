@@ -10,6 +10,8 @@ import { PermissionS } from '../../../services/auth/permission-s';
 import { MultiSelect } from "../../shared/multi-select/multi-select";
 import { FormsModule } from '@angular/forms';
 import { ItemS } from '../../../services/item-s';
+import { ToastService } from '../../../utils/toast/toast.service';
+import { ConfirmService } from '../../../utils/confirm/confirm.service';
 
 interface RelatedProductOption {
   key: number;
@@ -18,8 +20,9 @@ interface RelatedProductOption {
 
 interface ImagePreview {
   url: string;
-  file: File;
+  file: File | null;
   index: number;
+  isExisting?: boolean; // New property to track existing vs new images
 }
 
 @Component({
@@ -32,15 +35,17 @@ export class ProductList {
   faPencil = faPencil;
   faXmark = faXmark;
   faMagnifyingGlass = faMagnifyingGlass;
-  
+
   /* ---------------- DI ---------------- */
   private productService = inject(ProductS);
   private itemService = inject(ItemS);
   private permissionService = inject(PermissionS);
-  
+    private toast = inject(ToastService);
+    private confirm = inject(ConfirmService);
+
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('multipleFileInput') multipleFileInput!: ElementRef<HTMLInputElement>;
-  
+
   imgURL = environment.ImageApi;
   emptyImg = environment.emptyImg;
 
@@ -50,13 +55,14 @@ export class ProductList {
   relatedProducts: RelatedProductOption[] = [];
   searchQuery = signal('');
 
-  selectedProduct = signal<ProductM | null>(null);
+  selected = signal<ProductM | null>(null);
   selectedFile = signal<File | null>(null);
   previewUrl = signal<string | null>(null);
-  
+
   // New signals for multiple images
   selectedFiles = signal<File[]>([]);
   multiplePreviewUrls = signal<ImagePreview[]>([]);
+  existingImages = signal<string[]>([]);
 
   isLoading = signal(false);
   error = signal({
@@ -70,7 +76,8 @@ export class ProductList {
   isDelete = signal(false);
 
   highlightedTr = signal<number>(-1);
-  isSubmitting = signal(false);
+  isSubmitted = signal(false);
+  showList = signal(true);
 
   /* ---------------- COMPUTED ---------------- */
   filteredProductList = computed(() => {
@@ -81,7 +88,7 @@ export class ProductList {
         product.title?.toLowerCase().includes(query) ||
         product.description?.toLowerCase().includes(query) ||
         String(product.companyID ?? '').toLowerCase().includes(query)
-      )      
+      )
       .sort((a, b) => (a.sl! - b.sl!));
   });
 
@@ -153,23 +160,23 @@ export class ProductList {
 
   loadProducts(title = "", description = "", companyID = environment.companyCode) {
     this.isLoading.set(true);
-    this.error.set({message: '', type: 'load'});
+    this.error.set({ message: '', type: 'load' });
     const searchParams = { companyID, title, description }
 
-    this.productService.getAllProducts(searchParams).subscribe({
+    this.productService.search(searchParams).subscribe({
       next: (data) => {
         this.products.set(data);
         this.isLoading.set(false);
       },
       error: () => {
-        this.error.set({message: 'Failed to load products.', type: 'load'});
+        this.error.set({ message: 'Failed to load products.', type: 'load' });
         this.isLoading.set(false);
       }
     });
   }
 
   loadItems(companyID = environment.companyCode) {
-    this.itemService.getAllItems({ companyID }).subscribe({
+    this.itemService.search({ companyID }).subscribe({
       next: (data) => {
         // Process items if needed
         this.items.set(data);
@@ -199,6 +206,8 @@ export class ProductList {
     }
   }
 
+
+
   onMultipleImageSelect(event: Event) {
     const input = event.target as HTMLInputElement;
     const newPreviews: ImagePreview[] = [];
@@ -206,8 +215,12 @@ export class ProductList {
     if (input.files && input.files.length > 0) {
       // Convert FileList to array
       const files = Array.from(input.files);
-      
-      // Add new files to existing ones
+
+      // Get current existing previews count
+      const existingPreviews = this.multiplePreviewUrls().filter(p => p.isExisting);
+      const newFilesStartIndex = existingPreviews.length;
+
+      // Add new files to selected files
       const currentFiles = this.selectedFiles();
       const updatedFiles = [...currentFiles, ...files];
       this.selectedFiles.set(updatedFiles);
@@ -219,10 +232,11 @@ export class ProductList {
           const preview: ImagePreview = {
             url: e.target?.result as string,
             file: file,
-            index: currentFiles.length + index
+            index: newFilesStartIndex + index,
+            isExisting: false // Mark as new image
           };
           newPreviews.push(preview);
-          
+
           // When all new previews are loaded, update the signal
           if (newPreviews.length === files.length) {
             this.multiplePreviewUrls.update(current => [...current, ...newPreviews]);
@@ -234,23 +248,66 @@ export class ProductList {
   }
 
   removeMultipleImagePreview(index: number) {
-    // Remove from previews
-    this.multiplePreviewUrls.update(previews => 
-      previews.filter(p => p.index !== index)
-    );
-    
-    // Remove from selected files
-    this.selectedFiles.update(files => 
-      files.filter((_, i) => i !== index)
-    );
-    
-    // Update indices for remaining previews
-    this.multiplePreviewUrls.update(previews => 
-      previews.map((preview, i) => ({
-        ...preview,
-        index: i
-      }))
-    );
+    const previews = this.multiplePreviewUrls();
+    const previewToRemove = previews[index];
+
+    if (!previewToRemove) return;
+
+    // If it's an existing image (not a newly uploaded file)
+    if (previewToRemove.isExisting) {
+      // Just remove from previews but don't remove from files array
+      this.multiplePreviewUrls.update(previews =>
+        previews.filter((_, i) => i !== index)
+      );
+
+      // Update indices
+      this.multiplePreviewUrls.update(previews =>
+        previews.map((preview, i) => ({
+          ...preview,
+          index: i
+        }))
+      );
+    } else {
+      // It's a newly uploaded file - remove from both previews and selected files
+      // Find the file index in selectedFiles
+      const fileIndex = index - this.multiplePreviewUrls().filter(p => p.isExisting).length;
+
+      this.multiplePreviewUrls.update(previews =>
+        previews.filter((_, i) => i !== index)
+      );
+
+      this.selectedFiles.update(files =>
+        files.filter((_, i) => i !== fileIndex)
+      );
+
+      // Update indices for remaining previews
+      this.multiplePreviewUrls.update(previews =>
+        previews.map((preview, i) => ({
+          ...preview,
+          index: i
+        }))
+      );
+    }
+  }
+
+  // Update the filter function in onSubmit
+  private filterImagesByPreviewUrls(images: string[], previewUrls: ImagePreview[]): string[] {
+    if (!images || !Array.isArray(images)) return [];
+    if (!previewUrls || !Array.isArray(previewUrls)) return images;
+
+    // Only keep images that have corresponding previews marked as existing
+    return images.filter(image => {
+      return previewUrls.some(preview => {
+        if (!preview.isExisting) return false; // Only consider existing images
+
+        // Extract filename from preview URL
+        const urlParts = preview.url.split('/');
+        const previewFilename = urlParts[urlParts.length - 1];
+
+        // Check if image matches the preview filename
+        return image === previewFilename || previewFilename.includes(image);
+      });
+    });
   }
 
   clearFileInput() {
@@ -275,12 +332,12 @@ export class ProductList {
     event.preventDefault();
 
     if (!this.form().valid()) {
-      alert('Form is Invalid!');
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
       return;
     }
 
-    this.isSubmitting.set(true);
-    this.error.set({message: '', type: 'form'});
+    this.isSubmitted.set(true);
+    this.error.set({ message: '', type: 'form' });
 
     const formValue = this.form().value();
 
@@ -297,10 +354,11 @@ export class ProductList {
       catalogURL: formValue.catalogURL,
       sl: Number(formValue.sl),
       imageUrl: formValue.imageUrl,
-      images: formValue.images,
+      images: this.filterImagesByPreviewUrls(formValue.images, this.multiplePreviewUrls()),
       relatedProducts: this.getRelatedProductKeys(this.relatedProducts),
     };
-    
+    console.log(payload);
+
     const formData = new FormData();
 
     // Append form fields
@@ -315,17 +373,23 @@ export class ProductList {
     formData.append('SpecialFeature', payload.specialFeature ?? '');
     formData.append('CatalogURL', payload.catalogURL ?? '');
     formData.append('SL', String(payload.sl));
-    
+    formData.append('ImageUrl', payload.imageUrl ?? '');
+
+    // Append Images
+    payload.images.forEach((img) => {
+      formData.append('Images', img);
+    });
+
     // Append related products
     payload.relatedProducts.forEach((prodId) => {
       formData.append('RelatedProducts', prodId.toString());
     });
-    
+
     // ✅ Append main image file
     if (this.selectedFile()) {
       formData.append('ImageFile', this.selectedFile() as File);
     }
-    
+
     // ✅ Append multiple image files
     const multipleFiles = this.selectedFiles();
     if (multipleFiles.length > 0) {
@@ -334,103 +398,123 @@ export class ProductList {
       });
     }
 
-    const request$ = this.selectedProduct()
-      ? this.productService.updateProduct(this.selectedProduct()!.id, formData as any)
-      : this.productService.addProduct(formData);
+    const request$ = this.selected()
+      ? this.productService.update(this.selected()!.id, formData as any)
+      : this.productService.add(formData);
 
     request$.subscribe({
       next: () => {
         this.loadProducts();
-        this.formReset();
-        this.isSubmitting.set(false);
+        this.onToggleList();
+        this.toast.success('Saved successfully!', 'bottom-right', 5000);
       },
       error: (error) => {
-        this.error.set({message: error?.message || error?.error?.message || 'An error occurred during submission.', type: 'form'});
-        this.isSubmitting.set(false);
+        this.isSubmitted.set(false);
+        console.error(error?.message || error?.error?.message || 'An error occurred during submission.');
+        this.toast.danger('Saved unsuccessful!', 'bottom-left', 3000);
       }
     });
   }
 
   /* ---------------- UPDATE ---------------- */
-onUpdate(product: ProductM) {
-  this.selectedProduct.set(product);
+  onUpdate(product: ProductM) {
+    this.selected.set(product);
 
-  // Convert related products
-  if (product.relatedProducts) {
-    this.relatedProducts = this.relatedProductOptions().filter(option =>
-      product.relatedProducts!.includes(option.key)
-    );
-  } else {
-    this.relatedProducts = [];
-  }
+    // Convert related products
+    if (product.relatedProducts) {
+      this.relatedProducts = this.relatedProductOptions().filter(option =>
+        product.relatedProducts!.includes(option.key)
+      );
+    } else {
+      this.relatedProducts = [];
+    }
 
-  // Update form model
-  this.model.update(current => ({
-    ...current,
-    title: product.title,
-    description: product.description ?? '',
-    companyID: product.companyID,
-    itemId: product.itemId ?? '',
-    brand: product.brand ?? '',
-    model: product.model ?? '',
-    origin: product.origin ?? '',
-    additionalInformation: product.additionalInformation ?? '',
-    specialFeature: product.specialFeature ?? '',
-    catalogURL: product.catalogURL ?? '',
-    sl: product.sl?.toString() ?? '',
-    imageUrl: product.imageUrl ?? '',
-    images: product.images ?? [],
-    relatedProducts: this.relatedProductOptions().filter(rp => product.relatedProducts?.includes(rp.key)) || [],
-  }));
+    // Store existing images separately for reference
+    this.existingImages.set(product.images || []);
 
-  this.form().reset();
+    // Update form model
+    this.model.update(current => ({
+      ...current,
+      title: product.title,
+      description: product.description ?? '',
+      companyID: product.companyID,
+      itemId: product.itemId ?? '',
+      brand: product.brand ?? '',
+      model: product.model ?? '',
+      origin: product.origin ?? '',
+      additionalInformation: product.additionalInformation ?? '',
+      specialFeature: product.specialFeature ?? '',
+      catalogURL: product.catalogURL ?? '',
+      sl: product.sl?.toString() ?? '',
+      imageUrl: product.imageUrl ?? '',
+      images: product.images ?? [],
+      relatedProducts: this.relatedProductOptions().filter(rp => product.relatedProducts?.includes(rp.key)) || [],
+    }));
 
-  // FIX: Use imgURL instead of environment.apiUrl
-  // Set main image preview
-  if (product.imageUrl) {
-    this.previewUrl.set(
-      this.imgURL ? `${this.imgURL}${product.imageUrl}` : product.imageUrl
-    );
-  } else {
-    this.previewUrl.set(null);
-  }
+    this.form().reset();
 
-  // Reset main image file
-  this.selectedFile.set(null);
+    // Set main image preview
+    if (product.imageUrl) {
+      this.previewUrl.set(
+        this.imgURL ? `${this.imgURL}${product.imageUrl}` : product.imageUrl
+      );
+    } else {
+      this.previewUrl.set(null);
+    }
 
-  // FIX: Set multiple image previews if exists - use imgURL
-  if (product.images && product.images.length > 0) {
-    const previews: ImagePreview[] = [];
-    product.images.forEach((image, index) => {
-      previews.push({
-        url: this.imgURL ? `${this.imgURL}${image}` : image,
-        file: new File([], image), // Empty file for existing images
-        index: index
+    // Reset main image file
+    this.selectedFile.set(null);
+
+    // Set multiple image previews if exists - use imgURL
+    if (product.images && product.images.length > 0) {
+      const previews: ImagePreview[] = [];
+      product.images.forEach((image, index) => {
+        previews.push({
+          url: this.imgURL ? `${this.imgURL}${image}` : image,
+          file: null, // null for existing images
+          index: index,
+          isExisting: true // Mark as existing image
+        });
       });
-    });
-    this.multiplePreviewUrls.set(previews);
-    this.selectedFiles.set([]); // No new files selected for existing images
-  } else {
-    this.multiplePreviewUrls.set([]);
-    this.selectedFiles.set([]);
-  }
+      this.multiplePreviewUrls.set(previews);
+      this.selectedFiles.set([]); // No new files selected for existing images
+    } else {
+      this.multiplePreviewUrls.set([]);
+      this.selectedFiles.set([]);
+    }
 
-  // Clear file inputs
-  if (this.fileInput) {
-    this.fileInput.nativeElement.value = '';
+    // Clear file inputs
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+    if (this.multipleFileInput) {
+      this.multipleFileInput.nativeElement.value = '';
+    }
+    this.showList.set(false);
   }
-  if (this.multipleFileInput) {
-    this.multipleFileInput.nativeElement.value = '';
-  }
-}
 
   /* ---------------- DELETE ---------------- */
-  onDelete(id: any) {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-
-    this.productService.deleteProduct(id).subscribe(() => {
-      this.products.update(list => list.filter(c => c.id !== id));
+  async onDelete(id: any) {
+    const ok = await this.confirm.confirm({
+      message: 'Are you sure you want to delete this Product?',
+      confirmText: "Yes, I'm sure",
+      cancelText: 'No, cancel',
+      variant: 'danger',
     });
+
+    if (ok) {
+      // Delete Carousel
+      this.productService.delete(id).subscribe({
+        next: () => {
+          this.products.update(list => list.filter(c => c.id !== id));
+          this.toast.success('Product deleted successfully!', 'bottom-right', 5000);
+        },
+        error: (error) => {
+          this.toast.danger('Product deleted unsuccessful!', 'bottom-left', 3000);
+          console.error('Error deleting Product:', error);
+        }
+      });
+    }
   }
 
   /* ---------------- RESET ---------------- */
@@ -455,17 +539,17 @@ onUpdate(product: ProductM) {
     });
 
     this.relatedProducts = [];
-    this.selectedProduct.set(null);
-    
+    this.selected.set(null);
+
     // Reset image states
     this.selectedFile.set(null);
     this.previewUrl.set(null);
     this.selectedFiles.set([]);
     this.multiplePreviewUrls.set([]);
-    
-    this.isSubmitting.set(false);
+
+    this.isSubmitted.set(false);
     this.form().reset();
-    
+
     // Clear file inputs
     this.clearFileInput();
     this.clearMultipleFileInput();
@@ -473,6 +557,11 @@ onUpdate(product: ProductM) {
 
   closeError(e: Event) {
     e.preventDefault();
-    this.error.set({message: '', type: 'form'});
+    this.error.set({ message: '', type: 'form' });
+  }
+
+  onToggleList() {
+    this.showList.update(s => !s);
+    this.formReset();
   }
 }

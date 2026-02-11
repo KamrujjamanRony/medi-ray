@@ -8,6 +8,8 @@ import { Field, form, required, validate, debounce } from '@angular/forms/signal
 import { ItemS } from '../../../services/item-s';
 import { PermissionS } from '../../../services/auth/permission-s';
 import { FormsModule } from '@angular/forms';
+import { ToastService } from '../../../utils/toast/toast.service';
+import { ConfirmService } from '../../../utils/confirm/confirm.service';
 
 @Component({
   selector: 'app-item-list',
@@ -23,6 +25,8 @@ export class ItemList {
   /* ---------------- DI ---------------- */
   private itemService = inject(ItemS);
   private permissionService = inject(PermissionS);
+      private toast = inject(ToastService);
+      private confirm = inject(ConfirmService);
   
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
@@ -30,7 +34,7 @@ export class ItemList {
   items = signal<ItemM[]>([]);
   searchQuery = signal('');
 
-  filteredItemList = computed(() => {
+  filteredList = computed(() => {
     const query = this.searchQuery().toLowerCase();
 
     return this.items()
@@ -42,7 +46,7 @@ export class ItemList {
       .sort((a, b) => (a.slItem! - b.slItem!));
   });
 
-  selectedItem = signal<ItemM | null>(null);
+  selected = signal<ItemM | null>(null);
 
   isLoading = signal(false);
   hasError = signal(false);
@@ -51,6 +55,7 @@ export class ItemList {
   isInsert = signal(false);
   isEdit = signal(false);
   isDelete = signal(false);
+  showList = signal(true);
 
   isSubmitted = signal(false);
 
@@ -99,7 +104,7 @@ export class ItemList {
       companyID: environment.companyCode 
     };
 
-    this.itemService.getAllItems(params).subscribe({
+    this.itemService.search(params).subscribe({
       next: (data) => {
         this.items.set(data);
         this.isLoading.set(false);
@@ -121,7 +126,7 @@ export class ItemList {
     event.preventDefault();
 
     if (!this.form().valid()) {
-      alert('Form is Invalid!');
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
       return;
     }
 
@@ -135,26 +140,27 @@ export class ItemList {
       slItem: formValue.slItem ? Number(formValue.slItem) : null,
     };
     
-    const request$ = this.selectedItem()
-      ? this.itemService.updateItem(this.selectedItem()!.id!, payload)
-      : this.itemService.addItem(payload);
+    const request$ = this.selected()
+      ? this.itemService.update(this.selected()!.id!, payload)
+      : this.itemService.add(payload);
 
     request$.subscribe({
       next: () => {
         this.loadItems();
-        this.formReset();
-        this.isSubmitted.set(false);
+        this.onToggleList();
+        this.toast.success('Saved successfully!', 'bottom-right', 5000);
       },
       error: (error) => {
-        console.error('Error submitting form:', error);
         this.isSubmitted.set(false);
+        console.error(error?.message || error?.error?.message || 'An error occurred during submission.');
+        this.toast.danger('Saved unsuccessful!', 'bottom-left', 3000);
       }
     });
   }
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(item: ItemM) {
-    this.selectedItem.set(item);
+    this.selected.set(item);
 
     // Update form model
     this.model.update(current => ({
@@ -165,20 +171,31 @@ export class ItemList {
     }));
 
     this.form().reset();
+    this.showList.set(false);
   }
 
   /* ---------------- DELETE ---------------- */
-  onDelete(id: number) {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-
-    this.itemService.deleteItem(id).subscribe({
-      next: () => {
-        this.items.update(list => list.filter(i => i.id !== id));
-      },
-      error: (error) => {
-        console.error('Error deleting item:', error);
-      }
+  async onDelete(id: any) {
+    const ok = await this.confirm.confirm({
+      message: 'Are you sure you want to delete this item?',
+      confirmText: "Yes, I'm sure",
+      cancelText: 'No, cancel',
+      variant: 'danger',
     });
+
+    if (ok) {
+      // Delete item
+      this.itemService.delete(id).subscribe({
+        next: () => {
+          this.items.update(list => list.filter(i => i.id !== id));
+          this.toast.success('item deleted successfully!', 'bottom-right', 5000);
+        },
+        error: (error) => {
+          this.toast.danger('item deleted unsuccessful!', 'bottom-left', 3000);
+          console.error('Error deleting item:', error);
+        }
+      });
+    }
   }
 
   /* ---------------- RESET ---------------- */
@@ -189,9 +206,14 @@ export class ItemList {
       companyID: environment.companyCode.toString(),
     });
 
-    this.selectedItem.set(null);
+    this.selected.set(null);
     this.isSubmitted.set(false);
     this.form().reset();
+  }
+
+  onToggleList() {
+    this.showList.update(s => !s);
+    this.formReset();
   }
 
 }

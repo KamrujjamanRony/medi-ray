@@ -46,7 +46,13 @@
                   "maximumError": "8kB"
                 }
               ],
-              "optimization": true,
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": true
+              },
+              "buildOptimizer": true,
+              "vendorChunk": false,
               "outputHashing": "all",
               "sourceMap": false,
               "namedChunks": false,

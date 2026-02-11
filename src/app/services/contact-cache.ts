@@ -16,7 +16,7 @@ export class ContactCache {
   url = `${environment.apiUrl}/Address`;
 
   // Cached version
-  getContact(id: number = environment.companyCode): Observable<ContactM> {
+  get(id: number = environment.companyCode): Observable<ContactM> {
     return from(
       this.cache.getOrSet(
         `contact_item_${id}`,
@@ -27,7 +27,7 @@ export class ContactCache {
   }
 
   // Clear cache on update
-  updateContact(id: string, updateAddressRequest: ContactM | FormData): Observable<ContactM> {
+  update(id: string, updateAddressRequest: ContactM | FormData): Observable<ContactM> {
     // Clear relevant cache entries
     this.cache.clear('contact_all');
     

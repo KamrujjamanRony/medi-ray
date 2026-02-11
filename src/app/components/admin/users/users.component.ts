@@ -7,14 +7,9 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faPencil, faXmark, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import { Field, form, required, validate, debounce, minLength, maxLength } from '@angular/forms/signals';
 import { PermissionS } from '../../../services/auth/permission-s';
-
-/* --------------------------------------------
-   Optional: Strong typing for menu permissions
---------------------------------------------- */
-interface MenuPermission {
-  menuId: number;
-  PermissionKey: string[];
-}
+import { MenuPermissionM } from '../../../models/User';
+import { ConfirmService } from '../../../utils/confirm/confirm.service';
+import { ToastService } from '../../../utils/toast/toast.service';
 
 @Component({
   selector: 'app-users',
@@ -35,16 +30,20 @@ export class UsersComponent {
   private userS = inject(UserS);
   private menuS = inject(MenuS);
   private permissionService = inject(PermissionS);
+  private toast = inject(ToastService);
+  private confirm = inject(ConfirmService);
 
   /* ---------------- SIGNAL STATE ---------------- */
 
   users = signal<any[]>([]);
   searchQuery = signal('');
-  userAccessTree = signal<MenuPermission[]>([]);
-  selectedUser = signal<any | null>(null);
+  userAccessTree = signal<MenuPermissionM[]>([]);
+  selected = signal<any | null>(null);
 
   isLoading = signal(false);
   hasError = signal(false);
+  isSubmitted = signal(false);
+  showList = signal(true);
 
   isView = signal(false);
   isInsert = signal(false);
@@ -118,7 +117,7 @@ export class UsersComponent {
     }
 
 
-    this.userS.getUser(query).subscribe({
+    this.userS.search(query).subscribe({
       next: data => {
         this.users.set(data ?? []);
         this.isLoading.set(false);
@@ -147,7 +146,12 @@ export class UsersComponent {
   /* ---------------- SUBMIT ---------------- */
   onSubmit(event: Event) {
     event.preventDefault();
-    if (this.form().valid() && this.userAccessTree().length > 0) {
+
+    if (!this.form().valid()) {
+      this.toast.warning('Form is Invalid!', 'bottom-right', 5000);
+      return;
+    }
+      this.isSubmitted.set(true);
 
       // Create the payload with proper types
       const formValue = this.form().value();
@@ -160,25 +164,27 @@ export class UsersComponent {
         menuPermissions: this.userAccessTree(),
       };
 
-      const request$ = this.selectedUser()
-        ? this.userS.updateUser(this.selectedUser()!.id, payload)
-        : this.userS.addUser(payload);
+      const request$ = this.selected()
+        ? this.userS.update(this.selected()!.id, payload)
+        : this.userS.add(payload);
 
       request$.subscribe({
         next: () => {
           this.loadUsers();
-          this.formReset();
+          this.onToggleList();
+        this.toast.success('Saved successfully!', 'bottom-right', 5000);
         },
-        error: () => {}
+        error: (err) => {
+        this.toast.danger('Saved unsuccessful!', 'bottom-left', 3000);
+          console.error('Error submitting form:', err);
+          this.isSubmitted.set(false);
+        }
       });
-    } else {
-      alert("Form is Invalid!")
-    }
   }
 
   /* ---------------- UPDATE ---------------- */
   onUpdate(user: any) {
-    this.selectedUser.set({...user, username: user.userName});
+    this.selected.set({ ...user, username: user.userName });
     this.loadTreeData(user.id);
 
     // Update the form model
@@ -193,16 +199,31 @@ export class UsersComponent {
 
     // Reset validation states
     this.form().reset();
+    this.showList.set(false);
   }
 
   /* ---------------- DELETE ---------------- */
-
-  onDelete(id: any) {
-    if (!confirm('Are you sure you want to delete?')) return;
-
-    this.userS.deleteUser(id).subscribe(() => {
-      this.users.update(list => list.filter(u => u.id !== id));
+  async onDelete(id: any) {
+    const ok = await this.confirm.confirm({
+      message: 'Are you sure you want to delete this User?',
+      confirmText: "Yes, I'm sure",
+      cancelText: 'No, cancel',
+      variant: 'danger',
     });
+
+    if (ok) {
+      // Delete User
+      this.userS.delete(id).subscribe({
+        next: () => {
+          this.users.update(list => list.filter(i => i.id !== id));
+          this.toast.success('User deleted successfully!', 'bottom-right', 5000);
+        },
+        error: (error) => {
+        this.toast.danger('User deleted unsuccessful!', 'bottom-left', 3000);
+          console.error('Error deleting User:', error);
+        }
+      });
+    }
   }
 
   /* ---------------- RESET ---------------- */
@@ -216,7 +237,13 @@ export class UsersComponent {
       menuPermissions: [],
     });
     this.loadTreeData('');
-    this.selectedUser.set(null);
+    this.selected.set(null);
+    this.isSubmitted.set(false);
     this.form().reset();
+  }
+
+  onToggleList() {
+    this.showList.update(s => !s);
+    this.formReset();
   }
 }

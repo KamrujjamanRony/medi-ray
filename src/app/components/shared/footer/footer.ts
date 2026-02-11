@@ -37,7 +37,7 @@ export class Footer implements OnInit {
     this.isLoading.set(true);
     this.hasError.set(false);
 
-    this.contactService.getContact(environment.companyCode).subscribe({
+    this.contactService.get(environment.companyCode).subscribe({
       next: (data) => {
         this.contactInfo.set(data);
         this.isLoading.set(false);
